@@ -918,6 +918,12 @@ buildTerms();
 bindTransport();
 reseed();
 
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch((error) => {
+    console.warn("Service worker not registered", error);
+  });
+}
+
 try {
   applyPreset(PRESETS.neutral);
   await initPlots();
