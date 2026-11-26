@@ -132,7 +132,7 @@ export function Controls({
             step={0.5}
             digits={1}
             gloss="mo/s"
-            sentence="Viewing speed only. It does not change Jin’s equations."
+            sentence="Clock rate, in model months per second of wall time."
             onChange={onSpeed}
           />
         </div>

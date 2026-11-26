@@ -181,40 +181,17 @@ export async function mountPacific(canvas) {
       aim(item.arrow, item.lat, item.lon, poleward ? towardPole : towardEquator, 0.7);
       item.arrow.visible = Math.abs(tCelsius) > 0.08;
     }
-    const caption = document.getElementById("globe-caption");
-    if (caption) {
-      const wind = Math.abs(tCelsius) < 0.08
-        ? "Winds are near normal."
-        : tCelsius > 0
-          ? "Pale arrows are the westerly anomaly, blowing toward the Americas."
-          : "Pale arrows are the stronger trades, blowing back toward the warm pool.";
-      const flux = Math.abs(tCelsius) < 0.08
-        ? ""
-        : tCelsius > 0
-          ? " Blue arrows leave the equator: the warm east is discharging heat."
-          : " Blue arrows return to the equator: the cold east is recharging heat.";
-      const place = zonalShare > 0.5
-        ? "drawn farther west, over the central Pacific, because the zonal advective feedback is larger than the thermocline feedback (Kug, Jin and An, 2009)"
-        : "drawn over the central and eastern equatorial Pacific, the cold-tongue side of the same split";
-      caption.textContent =
-        `The photograph is NASA’s Blue Marble. Coral or teal on the water is the model’s one temperature, ${signed(tCelsius)} °C, ${place}. Gold or blue in the west is the warm-pool heat, h_W = ${signed(hWest, 0)} m. The ribbon is the thermocline from that west value to h_E = ${signed(hEast, 0)} m in the east: gold is deeper, blue is shallower. ${wind}${flux}`;
-    }
   }
 
   bindOrbit(canvas, target);
-  for (const button of document.querySelectorAll("[data-globe-view]")) {
-    button.addEventListener("click", () => {
-      const next = VIEWS[button.dataset.globeView];
-      if (!next) return;
-      target.lat = next.lat;
-      target.lon = next.lon;
-      target.dist = next.dist;
-      for (const other of document.querySelectorAll("[data-globe-view]")) {
-        other.setAttribute("aria-pressed", other === button ? "true" : "false");
-      }
-    });
+
+  function setView(name) {
+    const next = VIEWS[name];
+    if (!next) return;
+    target.lat = next.lat;
+    target.lon = next.lon;
+    target.dist = next.dist;
   }
-  document.querySelector("[data-globe-view='pacific']")?.setAttribute("aria-pressed", "true");
 
   const observer = new ResizeObserver(() => resize());
   observer.observe(stage);
@@ -225,6 +202,7 @@ export async function mountPacific(canvas) {
   return {
     update,
     resize,
+    setView,
     dispose() {
       running = false;
       cancelAnimationFrame(frame);

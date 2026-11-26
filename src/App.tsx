@@ -1,18 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pause, Play, RotateCcw } from "lucide-react";
-import { PRESETS } from "../js/model.js";
+import { PRESETS, SCALES } from "../js/model.js";
+import { parameterJson, seriesCsv } from "../js/export.js";
 import { createSimulation } from "@/sim/simulation.js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { GlobeCard } from "@/components/globe-card";
-import { PhaseChart, SeriesChart } from "@/components/charts";
+import { Journey } from "@/components/journey";
+import { SectionFigure } from "@/components/section-figure";
 import { Equations } from "@/components/equations";
-import { Basin } from "@/components/basin";
+import { SweepFigure } from "@/components/sweep-figure";
+import { SeriesFigure } from "@/components/series-figure";
 import { Controls } from "@/components/controls";
 
 type Sim = ReturnType<typeof createSimulation>;
 type Snap = ReturnType<Sim["snapshot"]>;
+
+function download(name: string, text: string, type: string) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function signed(value: number, digits: number) {
+  if (!Number.isFinite(value)) return "—";
+  return `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toFixed(digits)}`;
+}
 
 export default function App() {
   const sim = useRef<Sim>(createSimulation());
@@ -47,48 +65,78 @@ export default function App() {
     publish();
   }, [publish]);
 
+  const [tools, setTools] = useState(false);
   const shown = snap.shown;
-  const stat = (label: string, value: string) => (
-    <div className="rounded-md border border-border bg-card px-3 py-2">
+  const diag = snap.diag;
+  const stat = (id: string, label: string, value: string) => (
+    <div id={id} className="rounded-md border border-border bg-card px-3 py-2">
       <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <div className="mt-0.5 font-mono text-sm">{value}</div>
     </div>
   );
 
+  const exportRuns = () => {
+    const runs = [snap.runA, snap.runB].filter((run): run is NonNullable<typeof snap.runB> => run != null);
+    return runs.map((run) => ({ id: run.id, params: run.params, series: run.series }));
+  };
+
   return (
     <div className="min-h-screen bg-background pb-28 text-foreground">
       <header className="mx-auto max-w-6xl px-4 pb-2 pt-6">
-        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Equatorial Pacific · two equations</p>
-        <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Recharge oscillator</h1>
-            <p className="intro-copy mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              El Niño in Fei-Fei Jin’s recharge oscillator. The default is his 1997 model: stored heat in the west warms the east, the winds drain it, and the Pacific swings back.
-            </p>
-          </div>
-        </div>
+        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Equatorial Pacific</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Recharge oscillator</h1>
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-4 px-4">
-        <GlobeCard tCelsius={shown.tCelsius} hWest={shown.hMeters} hEast={snap.hE} zonalShare={snap.diag.zonalShare} />
+        <section className="status-block">
+          <h2 id="phase-title" className="text-3xl font-semibold tracking-tight">{snap.phase.title}</h2>
+          <p id="globe-caption" className="mt-1 text-sm text-muted-foreground">{snap.phase.line}</p>
+        </section>
 
-        <section className="status-block grid gap-3 sm:grid-cols-[1.4fr_1fr] sm:items-end">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 id="phase-title" className="text-2xl font-semibold tracking-tight">{snap.phase.title}</h2>
-              <Badge>{snap.playing ? "Playing" : "Paused"}</Badge>
-            </div>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">{snap.phase.line}</p>
-          </div>
-          <dl className="grid grid-cols-3 gap-2">
-            {stat("Period", snap.diag.periodYears ? `${snap.diag.periodYears.toFixed(1)} yr` : "no cycle")}
-            {stat("Growth σ", `${snap.diag.growthPerYear >= 0 ? "+" : "−"}${Math.abs(snap.diag.growthPerYear).toFixed(2)} /yr`)}
-            {stat("Heat leads", snap.diag.leadMonths ? `${snap.diag.leadMonths.toFixed(0)} mo` : "—")}
-          </dl>
+        <Journey
+          tCelsius={shown.tCelsius}
+          hWest={shown.hMeters}
+          hEast={snap.hE}
+          zonalShare={diag.zonalShare}
+          phaseTitle={snap.compare ? `${snap.edit} · ${snap.phase.title}` : snap.phase.title}
+          beatId={snap.phase.id}
+          phaseRange={snap.phaseRange}
+          trailA={snap.runA.trail}
+          trailB={snap.runB ? snap.runB.trail : null}
+          onDrag={onDrag}
+        />
+
+        <div>
+          <Button
+            id="coefficients"
+            type="button"
+            variant={tools ? "default" : "outline"}
+            aria-expanded={tools}
+            onClick={() => setTools((open) => !open)}
+          >
+            Coefficients
+          </Button>
+        </div>
+
+        {tools && (
+        <>
+        <section className="grid gap-2 sm:grid-cols-4">
+          {stat("diag-sigma", "σ", diag.growthPerYear != null ? `${signed(diag.growthPerYear, 2)} /yr` : "—")}
+          {stat("diag-omega", "ω", diag.omega ? diag.omega.toFixed(3) : "—")}
+          {stat("diag-period", "Period", diag.periodYears ? `${diag.periodYears.toFixed(1)} yr` : "—")}
+          {stat("diag-lead", "h_W lead", diag.leadMonths ? `${diag.leadMonths.toFixed(0)} mo` : "—")}
         </section>
 
         <Card>
-          <CardHeader><CardTitle>Start from a preset</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Section</CardTitle></CardHeader>
+          <CardContent>
+            <SectionFigure tCelsius={shown.tCelsius} hWest={shown.hMeters} hEast={snap.hE} />
+            <p className="mt-2 text-xs text-muted-foreground">West is warm-water volume. East is T_E.</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Initial states</CardTitle></CardHeader>
           <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {Object.values(PRESETS).map((preset) => (
               <button
@@ -109,64 +157,107 @@ export default function App() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader><CardTitle>Runs</CardTitle></CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button
+              id="run-a"
+              type="button"
+              variant={snap.edit === "A" ? "default" : "outline"}
+              aria-pressed={snap.edit === "A"}
+              onClick={() => { sim.current.selectRun("A"); publish(); }}
+            >
+              Run A
+            </Button>
+            <Button
+              id="run-b"
+              type="button"
+              variant={snap.edit === "B" ? "default" : "outline"}
+              aria-pressed={snap.edit === "B"}
+              disabled={!snap.compare}
+              onClick={() => { sim.current.selectRun("B"); publish(); }}
+            >
+              Run B
+            </Button>
+            <Button id="duplicate" type="button" variant="outline" onClick={() => { sim.current.duplicate(); publish(); }}>
+              Copy A to B
+            </Button>
+            {snap.compare && (
+              <Button id="drop-b" type="button" variant="outline" onClick={() => { sim.current.dropCompare(); publish(); }}>
+                Drop B
+              </Button>
+            )}
+            <Button
+              id="export-csv"
+              type="button"
+              variant="outline"
+              onClick={() => download("recharge-oscillator.csv", seriesCsv(exportRuns()), "text/csv")}
+            >
+              CSV
+            </Button>
+            <Button
+              id="export-json"
+              type="button"
+              variant="outline"
+              onClick={() => download("recharge-oscillator.json", parameterJson({
+                reference: "Jin (1997) J. Atmos. Sci. 54, 811–829, equations (2.6), (3.1), (3.4)",
+                scales: { h_meters: SCALES.hMeters, T_celsius: SCALES.tCelsius, t_months: SCALES.monthsPerTime },
+                time_years: snap.years,
+                runs: {
+                  A: {
+                    parameters: snap.runA.params,
+                    initial: { T_E_celsius: snap.runA.ic.tCelsius, h_W_meters: snap.runA.ic.hMeters },
+                  },
+                  B: snap.runB ? {
+                    parameters: snap.runB.params,
+                    initial: { T_E_celsius: snap.runB.ic.tCelsius, h_W_meters: snap.runB.ic.hMeters },
+                  } : null,
+                },
+              }), "application/json")}
+            >
+              JSON
+            </Button>
+          </CardContent>
+          <p className="px-6 pb-4 text-xs text-muted-foreground">
+            Run B starts as a copy of Run A. Subsequent coefficients apply to the selected run. The CSV repeats each coefficient on every time row. The JSON is the parameter set.
+            {snap.compare && snap.runB
+              ? ` Run B: σ = ${signed(snap.runB.diag.growthPerYear, 2)} /yr, period ${snap.runB.diag.periodYears ? `${snap.runB.diag.periodYears.toFixed(1)} yr` : "—"}.`
+              : ""}
+          </p>
+          <div className="px-6 pb-4">
+            <SeriesFigure
+              runA={snap.runA.series}
+              runB={snap.runB ? snap.runB.series : null}
+              windowYears={snap.series.window}
+            />
+          </div>
+        </Card>
+
         {snap.diverged && (
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="status">
-            The linear oscillator ran away. Jin’s cubic term εₙ is what keeps a growing El Niño finite. Raise εₙ, or press Reset.
+            The linear solution left the resolved range. εₙ h_E³ bounds a supercritical orbit. Increase εₙ, or reset the initial state.
           </p>
         )}
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Phase portrait</CardTitle>
-              <p className="font-mono text-xs text-muted-foreground">
-                T_E {shown.tCelsius >= 0 ? "+" : "−"}{Math.abs(shown.tCelsius).toFixed(2)} °C
-                {" · "}
-                h_W {shown.hMeters >= 0 ? "+" : "−"}{Math.abs(shown.hMeters).toFixed(1)} m
-              </p>
-            </CardHeader>
-            <CardContent>
-              <PhaseChart snap={snap} onDrag={onDrag} />
-              <p className="mt-2 text-xs text-muted-foreground">
-                Drag the dot to set the start. Right is recharged heat, left is discharged. Up is a warm east. Jin’s cycle runs clockwise.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>The equations</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Linear operator</CardTitle></CardHeader>
             <CardContent>
               <Equations
                 numbers={snap.numbers}
                 regime={snap.regime}
                 tendency={snap.tendency}
                 rates={snap.rates}
-                pieces={snap.diag.pieces}
-                flavor={snap.diag.flavor}
-                growthPerYear={snap.diag.growthPerYear}
+                pieces={diag.pieces}
+                flavor={diag.flavor}
+                growthPerYear={diag.growthPerYear}
               />
             </CardContent>
           </Card>
-
           <Card>
-            <CardHeader><CardTitle>Eastern temperature and western heat</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Stability</CardTitle></CardHeader>
             <CardContent>
-              <SeriesChart snap={snap} />
-              <p className="mt-2 text-xs text-muted-foreground">
-                Rose is the eastern temperature T_E. Amber is the western thermocline h_W. Heat peaks before the warm event.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>Recharge versus discharge</CardTitle></CardHeader>
-            <CardContent>
-              <Basin
-                tCelsius={shown.tCelsius}
-                hMeters={shown.hMeters}
-                hE={snap.hE}
-                discharge={snap.det.termsH.sverdrup < 0}
-              />
+              <SweepFigure params={snap.params} />
             </CardContent>
           </Card>
         </div>
@@ -175,7 +266,7 @@ export default function App() {
           <CardHeader>
             <CardTitle>Coefficients</CardTitle>
             <p className="text-sm text-muted-foreground">
-              The first nine sliders are Jin’s 1997 coefficients. The last three are off by default: zonal advection from Jin and An (1999), the Ekman feedback restored in the 2006 Bjerknes index, and a quadratic stand-in for the nonlinear heating in An and Jin (2004). Playback speed is not a coefficient. Reset starts the current experiment over.
+              Values for {snap.edit === "B" ? "Run B" : "Run A"}. Time scale is 2 months. [h] = 150 m, [T] = 7.5 °C.
             </p>
           </CardHeader>
           <CardContent>
@@ -201,21 +292,23 @@ export default function App() {
             />
           </CardContent>
         </Card>
+        </>
+        )}
 
         <footer className="space-y-2 pb-4 text-sm leading-relaxed text-muted-foreground">
           <p>
-            Default model: Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: Conceptual model.{" "}
+            Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: Conceptual model.{" "}
             <cite>Journal of the Atmospheric Sciences</cite>, 54(7), 811–829.{" "}
             <a className="underline underline-offset-2" href="https://doi.org/10.1175/1520-0469(1997)054%3C0811:AEORPF%3E2.0.CO;2">
               doi:10.1175/1520-0469(1997)054&lt;0811:AEORPF&gt;2.0.CO;2
             </a>
-            . Part II derives the same oscillator. With ζ, κ, and ν at zero, those are the only equations being integrated.
+            . Part II derives the same oscillator.
           </p>
           <p>
             Jin, F.-F., and S.-I. An (1999). Thermocline and zonal advective feedbacks within the equatorial ocean recharge oscillator model for ENSO.{" "}
             <cite>Geophysical Research Letters</cite>, 26(19), 2989–2992.{" "}
             <a className="underline underline-offset-2" href="https://doi.org/10.1029/1999GL002297">doi:10.1029/1999GL002297</a>.
-            Kug, J.-S., Jin, F.-F., and An, S.-I. (2009). Two types of El Niño events: cold tongue El Niño and warm pool El Niño.{" "}
+            {" "}Kug, J.-S., Jin, F.-F., and An, S.-I. (2009). Two types of El Niño events: cold tongue El Niño and warm pool El Niño.{" "}
             <cite>Journal of Climate</cite>, 22(6), 1499–1515.{" "}
             <a className="underline underline-offset-2" href="https://doi.org/10.1175/2008JCLI2624.1">doi:10.1175/2008JCLI2624.1</a>.
           </p>
@@ -223,12 +316,9 @@ export default function App() {
             Jin, F.-F., Kim, S. T., and Bejarano, L. (2006). A coupled-stability index for ENSO.{" "}
             <cite>Geophysical Research Letters</cite>, 33, L23708.{" "}
             <a className="underline underline-offset-2" href="https://doi.org/10.1029/2006GL027221">doi:10.1029/2006GL027221</a>.
-            An, S.-I., and Jin, F.-F. (2004). Nonlinearity and asymmetry of ENSO.{" "}
+            {" "}An, S.-I., and Jin, F.-F. (2004). Nonlinearity and asymmetry of ENSO.{" "}
             <cite>Journal of Climate</cite>, 17(12), 2399–2412.{" "}
             <a className="underline underline-offset-2" href="https://doi.org/10.1175/1520-0442(2004)017%3C2399:NAAOE%3E2.0.CO;2">doi:10.1175/1520-0442(2004)017&lt;2399:NAAOE&gt;2.0.CO;2</a>.
-          </p>
-          <p>
-            His most-cited papers by count are coauthored projections and reviews — Cai and others (2014) on more frequent extreme El Niño, Yeh and others (2009), Collins and others (2010). They do not add a term to these two equations, so they are not integrated.
           </p>
         </footer>
       </main>
