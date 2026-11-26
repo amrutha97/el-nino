@@ -21,6 +21,8 @@ import {
 const LIMIT = 6;
 const RECORD_EVERY_YEARS = 0.04;
 const SUBSTEP_YEARS = 0.004;
+const CYCLES_ON_RECORD = 4;
+const HISTORY_LIMIT = 2400;
 const PER_MONTH_T = SCALES.tCelsius / SCALES.monthsPerTime;
 const PER_MONTH_H = SCALES.hMeters / SCALES.monthsPerTime;
 
@@ -105,11 +107,17 @@ export function createSimulation() {
     run.history.years.push(state.years);
     run.history.tC.push(shown.tCelsius);
     run.history.hM.push(shown.hMeters);
-    if (run.history.years.length > 900) {
-      run.history.years.splice(0, 120);
-      run.history.tC.splice(0, 120);
-      run.history.hM.splice(0, 120);
+    if (run.history.years.length > HISTORY_LIMIT) {
+      run.history.years.splice(0, 400);
+      run.history.tC.splice(0, 400);
+      run.history.hM.splice(0, 400);
     }
+  }
+
+  function recordSpan(params) {
+    const diag = diagnose(params);
+    if (diag.oscillatory && diag.periodYears > 0) return diag.periodYears * CYCLES_ON_RECORD;
+    return 12;
   }
 
   function expandRange(hMeters, tCelsius, reset) {
@@ -127,8 +135,8 @@ export function createSimulation() {
     if (yNeed > state.phaseRange.y[1]) state.phaseRange.y = [-nice(yNeed), nice(yNeed)];
   }
 
-  function trailOf(run, diag) {
-    const span = diag.periodYears ? Math.min(14, Math.max(8, diag.periodYears * 3)) : 10;
+  function trailOf(run) {
+    const span = recordSpan(run.params);
     const start = state.years - span;
     const { years, tC, hM } = run.history;
     let i = 0;
@@ -137,9 +145,10 @@ export function createSimulation() {
   }
 
   function seriesWindow() {
-    const end = Math.max(state.years, 4);
-    const start = state.years > 12 ? state.years - 12 : 0;
-    return [start, Math.max(end, start + 4)];
+    const span = recordSpan(edited().params);
+    const end = Math.max(state.years, span);
+    const start = Math.max(0, end - span);
+    return [start, end];
   }
 
   function paddedRange(values, floor) {
@@ -149,7 +158,7 @@ export function createSimulation() {
   }
 
   function ratesOf(run) {
-    const det = tendencies(run.h, run.T, run.params);
+    const det = tendencies(run.h, run.T, run.params, state.years * TIME_UNITS_PER_YEAR);
     return {
       det,
       hE: det.hE * SCALES.hMeters,
@@ -161,6 +170,7 @@ export function createSimulation() {
         thermocline: det.termsT.thermocline * PER_MONTH_T,
         cubic: det.termsT.cubic * PER_MONTH_T,
         ndh: det.termsT.ndh * PER_MONTH_T,
+        annual: det.termsT.annual * PER_MONTH_T,
         memory: det.termsH.memory * PER_MONTH_H,
         sverdrup: det.termsH.sverdrup * PER_MONTH_H,
       },
@@ -178,7 +188,7 @@ export function createSimulation() {
       hE,
       diag,
       phase: beatOf(shown.tCelsius, shown.hMeters),
-      trail: trailOf(run, diag),
+      trail: trailOf(run),
       series: {
         years: run.history.years.slice(),
         tC: run.history.tC.slice(),
@@ -306,11 +316,13 @@ export function createSimulation() {
     run.h = nd.h;
     run.seed += 1;
     restartAtInitial();
+    showRecord();
   }
 
   function reset() {
     state.playing = state.playing;
     restartAtInitial();
+    showRecord();
   }
 
   function setParam(key, value) {
@@ -360,13 +372,50 @@ export function createSimulation() {
 
   function advanceRun(run, slice) {
     if (run.diverged) return;
-    const next = step(run.h, run.T, run.params, slice * TIME_UNITS_PER_YEAR, run.randn);
+    const next = step(run.h, run.T, run.params, slice * TIME_UNITS_PER_YEAR, run.randn, state.years * TIME_UNITS_PER_YEAR);
     run.h = next.h;
     run.T = next.T;
     run.sinceRecord += slice;
     if (!Number.isFinite(run.T) || Math.abs(run.T) > LIMIT || Math.abs(run.h) > LIMIT) {
       run.diverged = true;
     }
+  }
+
+  function integrate(years) {
+    const active = [state.A];
+    if (state.compare) active.push(state.B);
+    let left = years;
+    while (left > 1e-9) {
+      if (active.every((run) => run.diverged)) {
+        state.playing = false;
+        break;
+      }
+      const slice = Math.min(SUBSTEP_YEARS, left);
+      advanceRun(state.A, slice);
+      if (state.compare) advanceRun(state.B, slice);
+      state.years += slice;
+      left -= slice;
+      record(state.A, false);
+      if (state.compare) record(state.B, false);
+    }
+    const shownA = toDisplay(state.A.T, state.A.h);
+    expandRange(shownA.hMeters, shownA.tCelsius, false);
+    if (state.compare) {
+      const shownB = toDisplay(state.B.T, state.B.h);
+      expandRange(shownB.hMeters, shownB.tCelsius, false);
+    }
+  }
+
+  function expandHistory(run) {
+    const { tC, hM } = run.history;
+    for (let i = 0; i < tC.length; i += 6) expandRange(hM[i], tC[i], false);
+  }
+
+  /** Draw several cycles immediately. Play keeps integrating past this record. */
+  function showRecord() {
+    integrate(recordSpan(state.A.params));
+    expandHistory(state.A);
+    if (state.compare) expandHistory(state.B);
   }
 
   function advance(wallSeconds) {
@@ -377,26 +426,7 @@ export function createSimulation() {
       state.playing = false;
       return;
     }
-    let yearsLeft = Math.min(0.45, wallSeconds * (state.monthsPerSecond / 12));
-    while (yearsLeft > 1e-8) {
-      const slice = Math.min(SUBSTEP_YEARS, yearsLeft);
-      advanceRun(state.A, slice);
-      if (state.compare) advanceRun(state.B, slice);
-      state.years += slice;
-      yearsLeft -= slice;
-      if (active.every((run) => run.diverged)) {
-        state.playing = false;
-        break;
-      }
-    }
-    record(state.A, false);
-    if (state.compare) record(state.B, false);
-    const shownA = toDisplay(state.A.T, state.A.h);
-    expandRange(shownA.hMeters, shownA.tCelsius, false);
-    if (state.compare) {
-      const shownB = toDisplay(state.B.T, state.B.h);
-      expandRange(shownB.hMeters, shownB.tCelsius, false);
-    }
+    integrate(Math.min(0.45, wallSeconds * (state.monthsPerSecond / 12)));
   }
 
   function applyInitial(preset) {
@@ -412,10 +442,12 @@ export function createSimulation() {
     state.A.T = nd.T;
     state.A.h = nd.h;
     restartAtInitial();
+    showRecord();
   }
 
   // Fig. 3 neutral orbit, begun where the west is recharged and the east has not warmed.
   applyInitial({ ...PRESETS.neutral, id: "", tCelsius: -0.4, hMeters: 14 });
+  state.playing = false;
   return {
     state,
     snapshot,

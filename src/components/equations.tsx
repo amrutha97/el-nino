@@ -1,7 +1,7 @@
 import { TERM_SPEC } from "@/sim/copy.js";
 
 const HEAT = new Set(["memory", "sverdrup"]);
-const SST_TERMS = ["damping", "tilt", "zonal", "ekman", "thermocline", "cubic", "ndh"];
+const SST_TERMS = ["damping", "tilt", "zonal", "ekman", "thermocline", "cubic", "ndh", "annual"];
 
 type Pieces = {
   thermocline: number;
@@ -49,6 +49,8 @@ export function Equations({
         R = (γ + ζ + κ) b − c, &nbsp; b = b₀ μ, &nbsp; h_E = h_W + b T_E
         <br />
         σ = (R − r) / 2, &nbsp; ω = √[α b γ − (R + r)² / 4]
+        <br />
+        λₐ cos(2π t) T_E and G = 1 + B T_E stay out until those controls move.
       </p>
       <p>{numbers}</p>
       <p className="text-muted-foreground">{regime}</p>

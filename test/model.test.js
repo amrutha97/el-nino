@@ -260,6 +260,42 @@ test("quadratic heating warms both phases, so El Niño outgrows La Niña", () =>
   assert.ok(maxT > Math.abs(minT) * 1.4);
 });
 
+test("λₐ and B leave the 1997 system unchanged until they are turned on", () => {
+  const p = { ...JIN_DEFAULTS, mu: MC };
+  const base = tendencies(0.1, 0.2, p, 0.4);
+  const idle = tendencies(0.1, 0.2, { ...p, ann: 0, bee: 0 }, 1.2);
+  assert.equal(idle.dT, base.dT);
+  assert.equal(idle.dh, base.dh);
+  const on = tendencies(0.1, 0.2, { ...p, ann: 0.5 }, 0);
+  assert.ok(Math.abs(on.dT - (base.dT + 0.5 * 0.2)) < 1e-12);
+  const half = tendencies(0.1, 0.2, { ...p, ann: 0.5 }, TIME_UNITS_PER_YEAR / 2);
+  assert.ok(Math.abs(half.dT - (base.dT - 0.5 * 0.2)) < 1e-12);
+  assert.equal(on.dh, base.dh);
+
+  const noisy = {
+    ...JIN_DEFAULTS,
+    b0: 0,
+    c: 0,
+    gamma: 0,
+    r: 0,
+    alpha: 0.25,
+    mu: 0,
+    eps: 0,
+    sig1: 0.16,
+    sig2: 0,
+    bee: 1.5,
+  };
+  const dt = 0.04;
+  const T = 1 / SCALES.tCelsius;
+  const draws = [0.5, -0.25];
+  let n = 0;
+  const got = eulerMaruyamaStep(0, T, noisy, dt, () => draws[n++]);
+  const dw1 = Math.sqrt(dt) * draws[0];
+  const gain = 1 + 1.5 * 1;
+  assert.ok(Math.abs(got.h - (-noisy.alpha * Math.sqrt(noisy.sig1) * gain * dw1)) < 1e-12);
+  assert.ok(Math.abs(got.T - T) < 1e-12);
+});
+
 test("seeded noise generator is deterministic", () => {
   const a = boxMuller(mulberry32(7));
   const b = boxMuller(mulberry32(7));

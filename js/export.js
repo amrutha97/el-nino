@@ -3,7 +3,7 @@
  * reader keeps the parameter set with the series.
  */
 
-const COEFFICIENTS = ["mu", "b0", "c", "gamma", "r", "alpha", "eps", "sig1", "sig2", "zeta", "kappa", "nu"];
+const COEFFICIENTS = ["mu", "b0", "c", "gamma", "r", "alpha", "eps", "sig1", "sig2", "zeta", "kappa", "nu", "ann", "bee"];
 
 function cell(value) {
   if (typeof value === "number") {
