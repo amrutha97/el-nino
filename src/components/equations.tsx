@@ -1,30 +1,52 @@
 import { TERM_SPEC } from "@/sim/copy.js";
 
 const HEAT = new Set(["memory", "sverdrup"]);
+const SST_TERMS = ["damping", "tilt", "zonal", "ekman", "thermocline", "cubic", "ndh"];
+
+type Pieces = {
+  thermocline: number;
+  zonal: number;
+  ekman: number;
+  damping: number;
+};
 
 export function Equations({
   numbers,
   regime,
   tendency,
   rates,
+  pieces,
+  flavor,
+  growthPerYear,
 }: {
   numbers: string;
   regime: string;
   tendency: string;
   rates: Record<string, number>;
+  pieces: Pieces;
+  flavor: string;
+  growthPerYear: number;
 }) {
-  const scaleT = Math.max(0.15, ...["bjerknes", "thermocline", "cubic"].map((id) => Math.abs(rates[id] || 0)));
+  const scaleT = Math.max(0.15, ...SST_TERMS.map((id) => Math.abs(rates[id] || 0)));
   const scaleH = Math.max(1.5, ...["memory", "sverdrup"].map((id) => Math.abs(rates[id] || 0)));
+  const perYear = 6;
+  const bj = [
+    { name: "Damping −c", value: pieces.damping * perYear },
+    { name: "Thermocline γb", value: pieces.thermocline * perYear },
+    { name: "Zonal advection ζb", value: pieces.zonal * perYear },
+    { name: "Ekman κb", value: pieces.ekman * perYear },
+  ];
+  const bjScale = Math.max(0.4, ...bj.map((item) => Math.abs(item.value)));
   return (
     <div className="space-y-3 text-sm leading-relaxed">
       <p className="font-mono text-[15px] leading-snug">
-        <span className="text-neutral-500">dT_E/dt</span> = R T_E + γ h_W − εₙ (h_W + b T_E)³ + γ ξ₁ + ξ₂
+        <span className="text-neutral-500">dT_E/dt</span> = R T_E + γ h_W − εₙ h_E³ + ν T_E² + γ ξ₁ + ξ₂
       </p>
       <p className="font-mono text-[15px] leading-snug">
         <span className="text-neutral-500">dh_W/dt</span> = −r h_W − α b T_E − α ξ₁
       </p>
       <p className="font-mono text-[13px] text-muted-foreground">
-        R = γb − c, &nbsp; b = b₀ μ, &nbsp; h_E = h_W + b T_E
+        R = (γ + ζ + κ) b − c, &nbsp; b = b₀ μ, &nbsp; h_E = h_W + b T_E
         <br />
         σ = (R − r) / 2, &nbsp; ω = √[α b γ − (R + r)² / 4]
       </p>
@@ -61,9 +83,43 @@ export function Equations({
         })}
       </div>
       <p>{tendency}</p>
+      <h3 className="pt-1 text-sm font-semibold">Bjerknes index</h3>
+      <p className="text-xs text-muted-foreground">
+        Jin, Kim and Bejarano (2006) define this index as the growth rate. Here that is σ = {growthPerYear >= 0 ? "+" : "−"}{Math.abs(growthPerYear).toFixed(2)} /yr.
+        Their equation (9) splits the SST coefficient into the four bars. They sum to R, and σ = (R − r) / 2.
+        {flavor === "warm-pool"
+          ? " Zonal advection is larger than the thermocline feedback, which is the warm-pool El Niño of Kug, Jin and An (2009)."
+          : " The thermocline feedback is the larger of the two, which is the cold-tongue El Niño in that paper, and the whole of Jin’s 1997 model when ζ and κ are zero."}
+      </p>
+      <div className="space-y-2">
+        {bj.map((item) => {
+          const fraction = Math.max(-1, Math.min(1, item.value / bjScale));
+          return (
+            <div key={item.name}>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs">{item.name}</span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {item.value >= 0 ? "+" : "−"}{Math.abs(item.value).toFixed(2)} /yr
+                </span>
+              </div>
+              <div className="relative mt-1 h-1.5 overflow-hidden rounded-full bg-secondary">
+                <i className="absolute left-1/2 top-0 h-full w-px bg-neutral-300" />
+                <i
+                  className="absolute top-0 h-full bg-neutral-900"
+                  style={{
+                    width: `${Math.abs(fraction) * 50}%`,
+                    left: fraction >= 0 ? "50%" : `${50 - Math.abs(fraction) * 50}%`,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Jin’s conceptual model only (Journal of the Atmospheric Sciences, 1997, Part I, eqs. 2.6, 3.1, and 3.4).
-        The small Ekman term δₛb′ is left out, as Jin does after eq. 2.6. There is no seasonal cycle.
+        ζ = κ = ν = 0 is Jin (1997), Part I, equations (2.6), (3.1), and (3.4), including the dropped Ekman term.
+        ν T² is a schematic of the nonlinear dynamical heating in An and Jin (2004), not a formula they write down.
+        There is no seasonal cycle.
       </p>
     </div>
   );

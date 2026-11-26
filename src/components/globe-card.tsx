@@ -2,13 +2,13 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type View = { update: (state: { tCelsius: number; hWest: number; hEast: number }) => void; dispose: () => void };
+type View = { update: (state: { tCelsius: number; hWest: number; hEast: number; zonalShare: number }) => void; dispose: () => void };
 
-export function GlobeCard({ tCelsius, hWest, hEast }: { tCelsius: number; hWest: number; hEast: number }) {
+export function GlobeCard({ tCelsius, hWest, hEast, zonalShare }: { tCelsius: number; hWest: number; hEast: number; zonalShare: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const view = useRef<View | null>(null);
-  const latest = useRef({ tCelsius, hWest, hEast });
-  latest.current = { tCelsius, hWest, hEast };
+  const latest = useRef({ tCelsius, hWest, hEast, zonalShare });
+  latest.current = { tCelsius, hWest, hEast, zonalShare };
 
   useEffect(() => {
     const el = canvas.current;
@@ -34,8 +34,8 @@ export function GlobeCard({ tCelsius, hWest, hEast }: { tCelsius: number; hWest:
   }, []);
 
   useEffect(() => {
-    view.current?.update({ tCelsius, hWest, hEast });
-  }, [tCelsius, hWest, hEast]);
+    view.current?.update({ tCelsius, hWest, hEast, zonalShare });
+  }, [tCelsius, hWest, hEast, zonalShare]);
 
   return (
     <Card>

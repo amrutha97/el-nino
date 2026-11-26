@@ -118,14 +118,57 @@ export const CONTROLS = [
       "Random heating of the eastern Pacific. Jin’s illustrated variance is 2/15, about 1°C per month of white noise. Zero turns it off.",
     gloss: (p) => (Math.abs(p.sig2 - 2 / 15) < 0.01 ? "Jin’s 2/15" : p.sig2 === 0 ? "off" : "ξ₂ on"),
   },
+  {
+    group: "Later papers",
+    key: "zeta",
+    symbol: "ζ",
+    name: "Zonal advective feedback",
+    min: 0,
+    max: 1.2,
+    step: 0.01,
+    digits: 2,
+    sentence:
+      "Westerlies that go with a warm east carry warm water toward the cold tongue. Jin and An (1999) add this beside the thermocline feedback. Zero is the 1997 model.",
+    gloss: (_p, d) => `ζ b = ${d.pieces.zonal.toFixed(2)}`,
+  },
+  {
+    group: "Later papers",
+    key: "kappa",
+    symbol: "κ",
+    name: "Ekman feedback",
+    min: 0,
+    max: 0.8,
+    step: 0.01,
+    digits: 2,
+    sentence:
+      "Those same westerlies weaken upwelling, so less cold water reaches the surface. Jin drops this after equation (2.6). The 2006 Bjerknes index puts it back. Zero is the 1997 truncation.",
+    gloss: (_p, d) => `κ b = ${d.pieces.ekman.toFixed(2)}`,
+  },
+  {
+    group: "Later papers",
+    key: "nu",
+    symbol: "ν",
+    name: "Nonlinear dynamical heating",
+    min: 0,
+    max: 2,
+    step: 0.05,
+    digits: 2,
+    sentence:
+      "An and Jin (2004) find heating that warms the east in both El Niño and La Niña, so the warm event outgrows the cold one. They diagnose it from a heat budget. This slider is ν T², the simplest term with that sign, added onto equation (2.6). Zero leaves Jin’s symmetric cubic.",
+    gloss: (p) => (p.nu === 0 ? "off, 1997 cubic only" : "ν T² on"),
+  },
 ];
 
 export const TERM_SPEC = [
-  { id: "bjerknes", eq: "R T_E", meaning: "Bjerknes feedback on the east" },
-  { id: "thermocline", eq: "γ h_W", meaning: "thermocline effect from the west" },
-  { id: "cubic", eq: "−εₙ h_E³", meaning: "saturation of that feedback" },
+  { id: "damping", eq: "−c T_E", meaning: "upwelling and heat loss pulling the east back" },
+  { id: "tilt", eq: "γ b T_E", meaning: "thermocline feedback from the wind-driven tilt" },
+  { id: "zonal", eq: "ζ b T_E", meaning: "zonal advective feedback, Jin and An 1999" },
+  { id: "ekman", eq: "κ b T_E", meaning: "Ekman feedback in the 2006 Bjerknes index" },
+  { id: "thermocline", eq: "γ h_W", meaning: "stored western heat reaching the east" },
+  { id: "cubic", eq: "−εₙ h_E³", meaning: "1997 saturation, symmetric in warm and cold" },
+  { id: "ndh", eq: "ν T_E²", meaning: "schematic of An and Jin’s nonlinear heating" },
   { id: "memory", eq: "−r h_W", meaning: "western thermocline relaxing" },
   { id: "sverdrup", eq: "−α b T_E", meaning: "wind draining or piling heat" },
 ];
 
-export const CONTROL_GROUPS = ["Coupling", "Ocean memory", "Saturation and noise"];
+export const CONTROL_GROUPS = ["Coupling", "Ocean memory", "Saturation and noise", "Later papers"];

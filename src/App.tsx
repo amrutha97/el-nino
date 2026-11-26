@@ -63,15 +63,14 @@ export default function App() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Recharge oscillator</h1>
             <p className="intro-copy mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              El Niño, in the model Fei-Fei Jin wrote down in 1997. A deep western thermocline is stored heat.
-              It warms the eastern Pacific, the warmth drives westerly winds, and those winds drain the heat off the equator.
+              El Niño in Fei-Fei Jin’s recharge oscillator. The default is his 1997 model: stored heat in the west warms the east, the winds drain it, and the Pacific swings back.
             </p>
           </div>
         </div>
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-4 px-4">
-        <GlobeCard tCelsius={shown.tCelsius} hWest={shown.hMeters} hEast={snap.hE} />
+        <GlobeCard tCelsius={shown.tCelsius} hWest={shown.hMeters} hEast={snap.hE} zonalShare={snap.diag.zonalShare} />
 
         <section className="status-block grid gap-3 sm:grid-cols-[1.4fr_1fr] sm:items-end">
           <div>
@@ -90,7 +89,7 @@ export default function App() {
 
         <Card>
           <CardHeader><CardTitle>Start from a preset</CardTitle></CardHeader>
-          <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {Object.values(PRESETS).map((preset) => (
               <button
                 key={preset.id}
@@ -135,9 +134,17 @@ export default function App() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Jin’s equations</CardTitle></CardHeader>
+            <CardHeader><CardTitle>The equations</CardTitle></CardHeader>
             <CardContent>
-              <Equations numbers={snap.numbers} regime={snap.regime} tendency={snap.tendency} rates={snap.rates} />
+              <Equations
+                numbers={snap.numbers}
+                regime={snap.regime}
+                tendency={snap.tendency}
+                rates={snap.rates}
+                pieces={snap.diag.pieces}
+                flavor={snap.diag.flavor}
+                growthPerYear={snap.diag.growthPerYear}
+              />
             </CardContent>
           </Card>
 
@@ -168,7 +175,7 @@ export default function App() {
           <CardHeader>
             <CardTitle>Coefficients</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Every slider is one of Jin’s coefficients, except playback speed. Moving a coefficient changes the running state. Reset starts that experiment over.
+              The first nine sliders are Jin’s 1997 coefficients. The last three are off by default: zonal advection from Jin and An (1999), the Ekman feedback restored in the 2006 Bjerknes index, and a quadratic stand-in for the nonlinear heating in An and Jin (2004). Playback speed is not a coefficient. Reset starts the current experiment over.
             </p>
           </CardHeader>
           <CardContent>
@@ -195,13 +202,34 @@ export default function App() {
           </CardContent>
         </Card>
 
-        <footer className="pb-4 text-sm leading-relaxed text-muted-foreground">
-          Implemented from Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: Conceptual model.{" "}
-          <cite>Journal of the Atmospheric Sciences</cite>, 54(7), 811–829.{" "}
-          <a className="underline underline-offset-2" href="https://doi.org/10.1175/1520-0469(1997)054%3C0811:AEORPF%3E2.0.CO;2">
-            doi:10.1175/1520-0469(1997)054&lt;0811:AEORPF&gt;2.0.CO;2
-          </a>
-          . Part II derives this same oscillator from a stripped-down coupled model.
+        <footer className="space-y-2 pb-4 text-sm leading-relaxed text-muted-foreground">
+          <p>
+            Default model: Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: Conceptual model.{" "}
+            <cite>Journal of the Atmospheric Sciences</cite>, 54(7), 811–829.{" "}
+            <a className="underline underline-offset-2" href="https://doi.org/10.1175/1520-0469(1997)054%3C0811:AEORPF%3E2.0.CO;2">
+              doi:10.1175/1520-0469(1997)054&lt;0811:AEORPF&gt;2.0.CO;2
+            </a>
+            . Part II derives the same oscillator. With ζ, κ, and ν at zero, those are the only equations being integrated.
+          </p>
+          <p>
+            Jin, F.-F., and S.-I. An (1999). Thermocline and zonal advective feedbacks within the equatorial ocean recharge oscillator model for ENSO.{" "}
+            <cite>Geophysical Research Letters</cite>, 26(19), 2989–2992.{" "}
+            <a className="underline underline-offset-2" href="https://doi.org/10.1029/1999GL002297">doi:10.1029/1999GL002297</a>.
+            Kug, J.-S., Jin, F.-F., and An, S.-I. (2009). Two types of El Niño events: cold tongue El Niño and warm pool El Niño.{" "}
+            <cite>Journal of Climate</cite>, 22(6), 1499–1515.{" "}
+            <a className="underline underline-offset-2" href="https://doi.org/10.1175/2008JCLI2624.1">doi:10.1175/2008JCLI2624.1</a>.
+          </p>
+          <p>
+            Jin, F.-F., Kim, S. T., and Bejarano, L. (2006). A coupled-stability index for ENSO.{" "}
+            <cite>Geophysical Research Letters</cite>, 33, L23708.{" "}
+            <a className="underline underline-offset-2" href="https://doi.org/10.1029/2006GL027221">doi:10.1029/2006GL027221</a>.
+            An, S.-I., and Jin, F.-F. (2004). Nonlinearity and asymmetry of ENSO.{" "}
+            <cite>Journal of Climate</cite>, 17(12), 2399–2412.{" "}
+            <a className="underline underline-offset-2" href="https://doi.org/10.1175/1520-0442(2004)017%3C2399:NAAOE%3E2.0.CO;2">doi:10.1175/1520-0442(2004)017&lt;2399:NAAOE&gt;2.0.CO;2</a>.
+          </p>
+          <p>
+            His most-cited papers by count are coauthored projections and reviews — Cai and others (2014) on more frequent extreme El Niño, Yeh and others (2009), Collins and others (2010). They do not add a term to these two equations, so they are not integrated.
+          </p>
         </footer>
       </main>
 
