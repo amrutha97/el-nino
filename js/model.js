@@ -68,6 +68,18 @@ export const JIN_DEFAULTS = Object.freeze({
    * simplest forcing with the sign they describe. Zero leaves (3.1).
    */
   nu: 0,
+  /**
+   * Annual modulation λ_a of the SST growth rate, λ_a cos(2π t) T_E.
+   * Stein, Timmermann, Schneider, Jin & Stuecker (2014), the parametric
+   * recharge oscillator. Zero leaves the annual-mean operator.
+   */
+  ann: 0,
+  /**
+   * State-dependent wind, G = 1 + B T_E (°C⁻¹), multiplying ξ₁.
+   * Jin, Lin, Timmermann & Zhao (2007); Levine & Jin (2010).
+   * Zero leaves the additive wind of (3.4). Idle while σ₁² = 0.
+   */
+  bee: 0,
 });
 
 /**
@@ -269,13 +281,14 @@ export function diagnose(p) {
 
 /**
  * Deterministic tendencies.
- * dT_E/dt = R T_E + γ h_W − ε_n (h_W + b T_E)³ + ν T_E²
+ * dT_E/dt = R T_E + γ h_W − ε_n (h_W + b T_E)³ + ν T_E² + λ_a cos(2π t) T_E
  * dh_W/dt = −r h_W − α b T_E
  * R = (γ + ζ + κ) b − c
  * h_E = h_W + b T_E   (eq. 2.1 with τ = b T_E)
- * ν = ζ = κ = 0 is Jin's (2.6) and (3.1).
+ * ν = ζ = κ = λ_a = 0 is Jin's (2.6) and (3.1).
+ * `time` is nondimensional; one year is TIME_UNITS_PER_YEAR.
  */
-export function tendencies(h, T, p) {
+export function tendencies(h, T, p, time = 0) {
   const pieces = growthPieces(p);
   const { b, R } = pieces;
   const hE = h + b * T;
@@ -286,24 +299,26 @@ export function tendencies(h, T, p) {
   const thermocline = p.gamma * h;
   const cubic = -(p.eps || 0) * hE * hE * hE;
   const ndh = pieces.nu * T * T;
+  const years = time / TIME_UNITS_PER_YEAR;
+  const annual = optional(p, "ann") * Math.cos(2 * Math.PI * years) * T;
   const memory = -p.r * h;
   const sverdrup = -p.alpha * b * T;
   return {
     b,
     R,
     hE,
-    dT: damping + tilt + zonal + ekman + thermocline + cubic + ndh,
+    dT: damping + tilt + zonal + ekman + thermocline + cubic + ndh + annual,
     dh: memory + sverdrup,
-    termsT: { damping, tilt, zonal, ekman, thermocline, cubic, ndh, bjerknes: damping + tilt + zonal + ekman },
+    termsT: { damping, tilt, zonal, ekman, thermocline, cubic, ndh, annual, bjerknes: damping + tilt + zonal + ekman },
     termsH: { memory, sverdrup },
   };
 }
 
-export function rk4Step(h, T, p, dt) {
-  const k1 = tendencies(h, T, p);
-  const k2 = tendencies(h + 0.5 * dt * k1.dh, T + 0.5 * dt * k1.dT, p);
-  const k3 = tendencies(h + 0.5 * dt * k2.dh, T + 0.5 * dt * k2.dT, p);
-  const k4 = tendencies(h + dt * k3.dh, T + dt * k3.dT, p);
+export function rk4Step(h, T, p, dt, time = 0) {
+  const k1 = tendencies(h, T, p, time);
+  const k2 = tendencies(h + 0.5 * dt * k1.dh, T + 0.5 * dt * k1.dT, p, time + 0.5 * dt);
+  const k3 = tendencies(h + 0.5 * dt * k2.dh, T + 0.5 * dt * k2.dT, p, time + 0.5 * dt);
+  const k4 = tendencies(h + dt * k3.dh, T + dt * k3.dT, p, time + dt);
   return {
     h: h + (dt / 6) * (k1.dh + 2 * k2.dh + 2 * k3.dh + k4.dh),
     T: T + (dt / 6) * (k1.dT + 2 * k2.dT + 2 * k3.dT + k4.dT),
@@ -317,13 +332,15 @@ export function rk4Step(h, T, p, dt) {
  * One wind draw ξ₁ enters both equations, as in (3.4): −α ξ₁ and +γ ξ₁.
  * The heating draw ξ₂ enters only the SST equation.
  */
-export function eulerMaruyamaStep(h, T, p, dt, randn) {
-  const det = tendencies(h, T, p);
+export function eulerMaruyamaStep(h, T, p, dt, randn, time = 0) {
+  const det = tendencies(h, T, p, time);
   const z1 = randn();
   const z2 = randn();
   const dw1 = Math.sqrt(dt) * z1;
   const dw2 = Math.sqrt(dt) * z2;
-  const wind = Math.sqrt(Math.max(0, p.sig1));
+  // G = 1 + B T_E, T_E in °C. B = 0 is the additive wind of (3.4).
+  const gain = 1 + optional(p, "bee") * T * SCALES.tCelsius;
+  const wind = Math.sqrt(Math.max(0, p.sig1)) * gain;
   const heat = Math.sqrt(Math.max(0, p.sig2));
   return {
     h: h + det.dh * dt - p.alpha * wind * dw1,
@@ -331,11 +348,11 @@ export function eulerMaruyamaStep(h, T, p, dt, randn) {
   };
 }
 
-export function step(h, T, p, dt, randn) {
+export function step(h, T, p, dt, randn, time = 0) {
   if (p.sig1 > 0 || p.sig2 > 0) {
-    return eulerMaruyamaStep(h, T, p, dt, randn);
+    return eulerMaruyamaStep(h, T, p, dt, randn, time);
   }
-  return rk4Step(h, T, p, dt);
+  return rk4Step(h, T, p, dt, time);
 }
 
 /** Closed-form neutral orbit at the supplied coefficients, for h(0), T(0). */

@@ -145,6 +145,30 @@ export const CONTROLS = [
     sentence: "Nonlinear dynamical heating ν T_E², the sign in An and Jin (2004). ν = 0 leaves (3.1).",
     gloss: (p) => (p.nu === 0 ? "ν = 0" : "ν T_E²"),
   },
+  {
+    group: "Feedbacks",
+    key: "ann",
+    symbol: "λₐ",
+    name: "Annual growth",
+    min: 0,
+    max: 1,
+    step: 0.01,
+    digits: 2,
+    sentence: "Seasonal modulation λₐ cos(2π t) T_E. Stein, Timmermann, Schneider, Jin, and Stuecker (2014). Zero is the annual-mean operator.",
+    gloss: (p) => (p.ann === 0 ? "λₐ = 0" : "λₐ cos(2π t) T_E"),
+  },
+  {
+    group: "Saturation and noise",
+    key: "bee",
+    symbol: "B",
+    name: "State-dependent wind",
+    min: 0,
+    max: 1.5,
+    step: 0.05,
+    digits: 2,
+    sentence: "G = 1 + B T_E multiplies ξ₁, in °C⁻¹. Jin, Lin, Timmermann, and Zhao (2007); Levine and Jin (2010). B = 0 leaves (3.4). Idle while σ₁² = 0.",
+    gloss: (p) => (p.bee === 0 ? "B = 0" : "G = 1 + B T_E"),
+  },
 ];
 
 export const TERM_SPEC = [
@@ -155,6 +179,7 @@ export const TERM_SPEC = [
   { id: "thermocline", eq: "γ h_W", meaning: "western heat reaching the east" },
   { id: "cubic", eq: "−εₙ h_E³", meaning: "cubic saturation, odd in h_E" },
   { id: "ndh", eq: "ν T_E²", meaning: "nonlinear dynamical heating" },
+  { id: "annual", eq: "λₐ cos(2π t) T_E", meaning: "annual modulation of SST growth" },
   { id: "memory", eq: "−r h_W", meaning: "adjustment of the western thermocline" },
   { id: "sverdrup", eq: "−α b T_E", meaning: "Sverdrup discharge or recharge" },
 ];

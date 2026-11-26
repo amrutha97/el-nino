@@ -306,6 +306,15 @@ export default function App() {
             . Part II derives the same oscillator.
           </p>
           <p>
+            Stein, K., Timmermann, A., Schneider, N., Jin, F.-F., and Stuecker, M. F. (2014). ENSO seasonal synchronization theory.{" "}
+            <cite>Journal of Climate</cite>, 27, 5285–5310.{" "}
+            <a className="underline underline-offset-2" href="https://doi.org/10.1175/JCLI-D-13-00525.1">doi:10.1175/JCLI-D-13-00525.1</a>.
+            {" "}λₐ. Levine, A. F. Z., and Jin, F.-F. (2010). Noise-induced instability in the ENSO recharge oscillator.{" "}
+            <cite>Journal of the Atmospheric Sciences</cite>, 67, 529–542.{" "}
+            <a className="underline underline-offset-2" href="https://doi.org/10.1175/2009JAS3213.1">doi:10.1175/2009JAS3213.1</a>.
+            {" "}B, with Jin, Lin, Timmermann, and Zhao (2007).
+          </p>
+          <p>
             Jin, F.-F., and S.-I. An (1999). Thermocline and zonal advective feedbacks within the equatorial ocean recharge oscillator model for ENSO.{" "}
             <cite>Geophysical Research Letters</cite>, 26(19), 2989–2992.{" "}
             <a className="underline underline-offset-2" href="https://doi.org/10.1029/1999GL002297">doi:10.1029/1999GL002297</a>.
@@ -326,16 +335,16 @@ export default function App() {
 
       <div className="playbar">
         <div className="mx-auto flex max-w-6xl items-center gap-2">
-          <Button id="play" type="button" variant="outline" className="flex-1" aria-pressed={snap.playing} onClick={() => { sim.current.play(); publish(); }}>
-            <Icon icon={Play} /> Play
+          <Button id="play" type="button" variant={snap.playing ? "outline" : "default"} className="transport" aria-label="Play" aria-pressed={snap.playing} onClick={() => { sim.current.play(); publish(); }}>
+            <Icon icon={Play} />
           </Button>
-          <Button id="pause" type="button" variant="outline" className="flex-1" aria-pressed={!snap.playing} onClick={() => { sim.current.pause(); publish(); }}>
-            <Icon icon={Pause} /> Pause
+          <Button id="pause" type="button" variant="outline" className="transport" aria-label="Pause" aria-pressed={!snap.playing} onClick={() => { sim.current.pause(); publish(); }}>
+            <Icon icon={Pause} />
           </Button>
-          <Button id="reset" type="button" variant="outline" className="flex-1" onClick={() => { sim.current.reset(); publish(); }}>
-            <Icon icon={RotateCcw} /> Reset
+          <Button id="reset" type="button" variant="outline" className="transport" aria-label="Reset" onClick={() => { sim.current.reset(); publish(); }}>
+            <Icon icon={RotateCcw} />
           </Button>
-          <p id="year" className="m-0 shrink-0 whitespace-nowrap text-right font-mono text-sm tabular-nums">Year {snap.years.toFixed(1)}</p>
+          <p id="year" className="m-0 ml-auto shrink-0 whitespace-nowrap text-right font-mono text-sm tabular-nums">Year {snap.years.toFixed(1)}</p>
         </div>
       </div>
     </div>

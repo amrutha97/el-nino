@@ -32,7 +32,7 @@ test("CSV carries the series and the coefficients; JSON is the parameter set", (
     series: { years: [0, 0.04], tC: [1.125, 1.1], hM: [0, -1] },
   }]);
   const lines = csv.trim().split("\n");
-  assert.equal(lines[0], "run,year,T_E_celsius,h_W_meters,mu,b0,c,gamma,r,alpha,eps,sig1,sig2,zeta,kappa,nu");
+  assert.equal(lines[0], "run,year,T_E_celsius,h_W_meters,mu,b0,c,gamma,r,alpha,eps,sig1,sig2,zeta,kappa,nu,ann,bee");
   assert.ok(lines[1].startsWith("A,0,1.125,0,"));
   assert.equal(lines.length, 3);
   const json = JSON.parse(parameterJson({

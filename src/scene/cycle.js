@@ -151,7 +151,7 @@ function place(trail, markerMesh, h, t, range) {
 }
 
 function line(color) {
-  const positions = new Float32Array(500 * 3);
+  const positions = new Float32Array(2500 * 3);
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setDrawRange(0, 0);

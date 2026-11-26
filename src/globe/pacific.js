@@ -8,8 +8,8 @@
 
 import * as THREE from "three";
 
-/** One camera: equatorial Pacific, framed so the recharge ribbon stays above the phase name. */
-const PACIFIC = { lat: 6, lon: -150, dist: 2.05, aimY: -0.32 };
+/** One camera. The Pacific, from Asia to the Americas, tropics through the midlatitudes. */
+const PACIFIC = { lat: 5, lon: -160, dist: 3.7, aimY: -0.1 };
 
 const WIND_LONS = [152, 168, 184, 200, 216];
 const FLUX_LONS = [176, 196, 216];
@@ -37,8 +37,11 @@ export async function mountPacific(canvas) {
     new THREE.SphereGeometry(1, 96, 64),
     new THREE.MeshPhongMaterial({
       map: earthTex,
-      specular: new THREE.Color(0x163044),
-      shininess: 10,
+      color: new THREE.Color(0xb7c6d6),
+      specular: new THREE.Color(0x1a4564),
+      shininess: 28,
+      emissive: new THREE.Color(0x041018),
+      emissiveIntensity: 0.18,
     }),
   );
   scene.add(earth);
@@ -72,10 +75,10 @@ export async function mountPacific(canvas) {
   for (const arrow of winds) scene.add(arrow);
   for (const item of fluxes) scene.add(item.arrow);
 
-  scene.add(new THREE.AmbientLight(0xc5d4ea, 0.85));
-  const sun = new THREE.DirectionalLight(0xfff4e4, 1.35);
+  scene.add(new THREE.AmbientLight(0x9eb0c8, 0.42));
+  const sun = new THREE.DirectionalLight(0xfff1dc, 1.85);
   scene.add(sun);
-  const fill = new THREE.DirectionalLight(0x6ea0ff, 0.28);
+  const fill = new THREE.DirectionalLight(0x3d6ea8, 0.22);
   scene.add(fill);
 
   const view = { ...PACIFIC };
@@ -146,7 +149,7 @@ export async function mountPacific(canvas) {
     el.hidden = false;
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
-    const x = Math.min(width - 78, Math.max(78, (projected.x * 0.5 + 0.5) * width));
+    const x = Math.min(width - 36, Math.max(36, (projected.x * 0.5 + 0.5) * width));
     const y = Math.min(height - 28, Math.max(16, (-projected.y * 0.5 + 0.5) * height));
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
@@ -231,29 +234,29 @@ function createAnomalyPainter() {
           const heat = heatPatch(lat, x360, hWest);
           if (sst === 0 && heat === 0) continue;
           if (Math.abs(sst) >= Math.abs(heat)) {
-            const mag = Math.min(1, Math.abs(sst) / 2.4);
+            const mag = Math.min(1, Math.abs(sst) / 1.05);
             if (sst > 0) {
               data[i] = 255;
-              data[i + 1] = Math.round(70 + 90 * (1 - mag));
-              data[i + 2] = 48;
+              data[i + 1] = Math.round(32 + 50 * (1 - mag));
+              data[i + 2] = 18;
             } else {
-              data[i] = 28;
-              data[i + 1] = 150;
-              data[i + 2] = 214;
+              data[i] = 10;
+              data[i + 1] = Math.round(78 + 40 * (1 - mag));
+              data[i + 2] = 235;
             }
-            data[i + 3] = Math.round(18 + 105 * mag);
+            data[i + 3] = Math.round(255 * Math.pow(mag, 0.85));
           } else {
-            const mag = Math.min(1, Math.abs(heat) / 45);
+            const mag = Math.min(1, Math.abs(heat) / 32);
             if (heat > 0) {
-              data[i] = 232;
-              data[i + 1] = 168;
+              data[i] = 255;
+              data[i + 1] = 176;
               data[i + 2] = 64;
             } else {
-              data[i] = 90;
-              data[i + 1] = 130;
-              data[i + 2] = 210;
+              data[i] = 70;
+              data[i + 1] = 120;
+              data[i + 2] = 220;
             }
-            data[i + 3] = Math.round(16 + 80 * mag);
+            data[i + 3] = Math.round(200 * Math.pow(mag, 0.9));
           }
         }
       }
@@ -422,7 +425,7 @@ function atmosphereMaterial() {
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
-    uniforms: { color: { value: new THREE.Color(0x7eb6ff) } },
+    uniforms: { color: { value: new THREE.Color(0x3d6eaa) } },
     vertexShader: `
       varying vec3 vNormal;
       varying vec3 vView;
@@ -438,8 +441,8 @@ function atmosphereMaterial() {
       varying vec3 vView;
       uniform vec3 color;
       void main() {
-        float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 2.4);
-        gl_FragColor = vec4(color, rim * 0.85);
+        float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 3.1);
+        gl_FragColor = vec4(color, rim * 0.72);
       }
     `,
   });
