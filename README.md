@@ -8,38 +8,42 @@ Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: Conce
 
 Part II of that paper derives the same two-equation system from a stripped-down coupled model. This app integrates the Part I form: equations (2.6), (3.1), and (3.4). The small Ekman feedback is omitted, as Jin does after (2.6). There is no seasonal cycle and no extra warm–cold asymmetry beyond his cubic thermocline term.
 
-Charts use [Plotly](https://github.com/plotly/plotly.js) (MIT), vendored as `vendor/plotly-basic.min.js`. The Pacific view is a [Three.js](https://github.com/mrdoob/three.js) globe (MIT) on NASA’s Blue Marble photograph. Drag it, pinch to zoom, or use Pacific / Equator / Whole Earth. The color on the water is still only Jin’s \(T_E\) and \(h_W\), drawn where those anomalies live. It is not a second ocean model. The equatorial cross-section below the globe is the same two numbers as a slice.
+Charts use [Plotly](https://github.com/plotly/plotly.js) (MIT). The Pacific view is a [Three.js](https://github.com/mrdoob/three.js) globe (MIT) on NASA’s Blue Marble photograph. Drag it, pinch to zoom, or use Pacific / Equator / Whole Earth. The color on the water is still only Jin’s \(T_E\) and \(h_W\), drawn where those anomalies live. It is not a second ocean model. The equatorial cross-section below the globe is the same two numbers as a slice.
 
 ## Run it
 
-From this folder:
+The interface is a React app (Vite, Tailwind, shadcn components) in a light Vercel palette: Geist, white cards, black buttons. Jin’s equations stay in `js/model.js` and are not part of the UI code.
 
 ```bash
+npm install
+npm run dev
+```
+
+Open the address Vite prints. For the built site, the same one a host will serve:
+
+```bash
+npm run build
 python3 serve.py
 ```
 
-Open [http://127.0.0.1:8080](http://127.0.0.1:8080).
-
-`serve.py` is the local command. It serves the page with the manifest content type a browser needs in order to install the app. The server listens on all interfaces, so a phone on the same network can open `http://<this-computer>:8080`.
+Open [http://127.0.0.1:8080](http://127.0.0.1:8080). `serve.py` serves the `dist` folder and listens on all interfaces, so a phone on the same network can open `http://<this-computer>:8080`.
 
 ## Put it on a URL
 
-There is no build. The site is the files in this folder. Paths are relative, so the same folder works at a domain root (Vercel) or under `/el-nino/` (GitHub Pages).
-
-**Vercel** keeps working while this repository is private.
+**Vercel** keeps working while this repository is private. It detects Vite.
 
 1. Open [vercel.com/new](https://vercel.com/new) and import `amrutha97/el-nino`.
-2. Framework preset: Other. Leave the build command empty. Root directory: the repo root.
+2. Framework preset: Vite. Build command `npm run build`, output directory `dist`. Leave that as the default if Vercel fills it in.
 3. Until this branch is merged, set the production branch to `cursor/recharge-oscillator-7a8c`. After the merge, `main` is the site. Deploying `main` before that publishes only the old title page.
 4. Deploy. That `*.vercel.app` address stays put and updates on every push to the production branch.
 
-**GitHub Pages** is the workflow in `.github/workflows/pages.yml`. It publishes the repo root on every push to `main`.
+**GitHub Pages** is `.github/workflows/pages.yml`. On every push to `main` it runs `npm run build` and publishes `dist`.
 
 1. Merge to `main`.
 2. In the repository settings, open Pages and set the source to GitHub Actions.
 3. The address is `https://amrutha97.github.io/el-nino/`.
 
-On the free plan, GitHub Pages for a user site needs the repository to be public. Vercel does not.
+On the free plan, GitHub Pages needs the repository to be public. Vercel does not.
 
 Check the equations without the browser:
 

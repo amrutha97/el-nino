@@ -11,7 +11,7 @@ Then open http://127.0.0.1:8080
 import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -27,6 +27,8 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
+    if not os.path.isdir(ROOT) or not os.path.isfile(os.path.join(ROOT, "index.html")):
+        raise SystemExit("Build the site first: npm install && npm run build")
     port = int(os.environ.get("PORT", "8080"))
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     print(f"Recharge oscillator at http://127.0.0.1:{port}")

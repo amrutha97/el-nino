@@ -32,7 +32,7 @@ export async function mountPacific(canvas) {
   const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 20);
 
   const loader = new THREE.TextureLoader();
-  const earthTex = await loader.loadAsync("textures/earth.jpg");
+  const earthTex = await loader.loadAsync(`${import.meta.env.BASE_URL}textures/earth.jpg`);
   earthTex.colorSpace = THREE.SRGBColorSpace;
   earthTex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
@@ -145,8 +145,12 @@ export async function mountPacific(canvas) {
     }
     const projected = pos.clone().project(camera);
     el.hidden = false;
-    el.style.left = `${(projected.x * 0.5 + 0.5) * canvas.clientWidth}px`;
-    el.style.top = `${(-projected.y * 0.5 + 0.5) * canvas.clientHeight}px`;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    const x = Math.min(width - 78, Math.max(78, (projected.x * 0.5 + 0.5) * width));
+    const y = Math.min(height - 28, Math.max(16, (-projected.y * 0.5 + 0.5) * height));
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
   }
 
   function update({ tCelsius, hWest, hEast }) {
