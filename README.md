@@ -20,7 +20,26 @@ python3 serve.py
 
 Open [http://127.0.0.1:8080](http://127.0.0.1:8080).
 
-`serve.py` is the one command to use. It serves the page with the manifest content type a browser needs in order to install the app. The server listens on all interfaces, so a phone on the same network can open `http://<this-computer>:8080`.
+`serve.py` is the local command. It serves the page with the manifest content type a browser needs in order to install the app. The server listens on all interfaces, so a phone on the same network can open `http://<this-computer>:8080`.
+
+## Put it on a URL
+
+There is no build. The site is the files in this folder. Paths are relative, so the same folder works at a domain root (Vercel) or under `/el-nino/` (GitHub Pages).
+
+**Vercel** keeps working while this repository is private.
+
+1. Open [vercel.com/new](https://vercel.com/new) and import `amrutha97/el-nino`.
+2. Framework preset: Other. Leave the build command empty. Root directory: the repo root.
+3. Until this branch is merged, set the production branch to `cursor/recharge-oscillator-7a8c`. After the merge, `main` is the site. Deploying `main` before that publishes only the old title page.
+4. Deploy. That `*.vercel.app` address stays put and updates on every push to the production branch.
+
+**GitHub Pages** is the workflow in `.github/workflows/pages.yml`. It publishes the repo root on every push to `main`.
+
+1. Merge to `main`.
+2. In the repository settings, open Pages and set the source to GitHub Actions.
+3. The address is `https://amrutha97.github.io/el-nino/`.
+
+On the free plan, GitHub Pages for a user site needs the repository to be public. Vercel does not.
 
 Check the equations without the browser:
 
