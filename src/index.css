@@ -1,0 +1,93 @@
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 98%;
+  --foreground: 0 0% 9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 9%;
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 0 0% 94%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 0 0% 9%;
+  --radius: 0.6rem;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  min-height: 100%;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+body {
+  font-family: "Geist Variable", Geist, ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.globe-stage {
+  position: relative;
+  height: min(62vh, 520px);
+  min-height: 300px;
+  overflow: hidden;
+  border-radius: 0.6rem;
+  background: #02060c;
+}
+
+#globe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+
+.pin {
+  position: absolute;
+  margin: 0;
+  transform: translate(-50%, -130%);
+  pointer-events: none;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fafafa;
+  text-shadow: 0 1px 4px #000;
+  white-space: nowrap;
+}
+
+#globe-fallback[hidden] { display: none !important; }
+
+.globe-views button[aria-pressed="true"] {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+@media (max-width: 720px) {
+  .globe-stage { height: min(48vh, 400px); }
+}
+
+@media (min-width: 900px) and (max-height: 860px) {
+  .globe-stage { height: min(36vh, 300px); min-height: 220px; }
+}
+
+@media (max-height: 520px) and (max-width: 900px) {
+  .intro-copy, .status-block { display: none; }
+  .globe-stage { height: min(40vh, 170px); min-height: 140px; }
+}
