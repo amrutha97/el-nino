@@ -14,6 +14,9 @@
   <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="css/app.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.js" } }
+  </script>
 </head>
 <body>
   <header class="top">
@@ -47,6 +50,30 @@
           <dd id="stat-lead">—</dd>
         </div>
       </dl>
+    </section>
+
+    <section class="card globe-card">
+      <div class="globe-head">
+        <h2>Over the Pacific</h2>
+        <div class="globe-views">
+          <button type="button" data-globe-view="pacific">Pacific</button>
+          <button type="button" data-globe-view="equator">Equator</button>
+          <button type="button" data-globe-view="globe">Whole Earth</button>
+        </div>
+      </div>
+      <div class="globe-stage">
+        <canvas id="globe" aria-label="Draggable Earth centered on the equatorial Pacific. Drag to look around. Pinch or scroll to zoom."></canvas>
+        <p class="pin" data-pin="pool">Warm pool</p>
+        <p class="pin" data-pin="tongue">Cold tongue</p>
+        <ul class="globe-key">
+          <li><i class="swatch warm"></i> Warm east</li>
+          <li><i class="swatch cold"></i> Cold east</li>
+          <li><i class="swatch deep"></i> Deeper thermocline</li>
+          <li><i class="swatch shallow"></i> Shallower thermocline</li>
+        </ul>
+        <p class="globe-fallback" id="globe-fallback" hidden>The globe needs WebGL. The charts below still run the same model.</p>
+      </div>
+      <p class="caption" id="globe-caption">Drag the Earth to look around. This is Jin’s two numbers painted on a NASA photograph, not a second ocean model.</p>
     </section>
 
     <section class="card presets-card">

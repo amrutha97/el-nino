@@ -741,6 +741,11 @@ function renderReadouts() {
   document.getElementById("tendency").textContent = `${east} ${west}${noise}`;
 
   drawBasin(shown, det, hE);
+  pacific?.update({
+    tCelsius: shown.tCelsius,
+    hWest: shown.hMeters,
+    hEast: hE,
+  });
   const banner = document.getElementById("banner");
   if (state.diverged) {
     banner.hidden = false;
@@ -888,6 +893,21 @@ function bindDrag() {
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
+
+let pacific = null;
+import("./globe.js")
+  .then(({ mountPacific }) => mountPacific(document.getElementById("globe")))
+  .then((view) => {
+    pacific = view;
+    const shown = toDisplay(state.T, state.h);
+    const hE = tendencies(state.h, state.T, state.params).hE * SCALES.hMeters;
+    pacific.update({ tCelsius: shown.tCelsius, hWest: shown.hMeters, hEast: hE });
+  })
+  .catch((error) => {
+    console.error(error);
+    const fallback = document.getElementById("globe-fallback");
+    if (fallback) fallback.hidden = false;
+  });
 
 let plotDue = 0;
 let lastFrame = 0;

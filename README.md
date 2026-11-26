@@ -8,7 +8,7 @@ Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: Conce
 
 Part II of that paper derives the same two-equation system from a stripped-down coupled model. This app integrates the Part I form: equations (2.6), (3.1), and (3.4). The small Ekman feedback is omitted, as Jin does after (2.6). There is no seasonal cycle and no extra warm–cold asymmetry beyond his cubic thermocline term.
 
-Charts use [Plotly](https://github.com/plotly/plotly.js) (MIT), vendored as `vendor/plotly-basic.min.js`. The equatorial cross-section is drawn directly, so it stays light on a phone.
+Charts use [Plotly](https://github.com/plotly/plotly.js) (MIT), vendored as `vendor/plotly-basic.min.js`. The Pacific view is a [Three.js](https://github.com/mrdoob/three.js) globe (MIT) on NASA’s Blue Marble photograph. Drag it, pinch to zoom, or use Pacific / Equator / Whole Earth. The color on the water is still only Jin’s \(T_E\) and \(h_W\), drawn where those anomalies live. It is not a second ocean model. The equatorial cross-section below the globe is the same two numbers as a slice.
 
 ## Run it
 

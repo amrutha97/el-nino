@@ -1,4 +1,4 @@
-const CACHE = "recharge-oscillator-v1";
+const CACHE = "recharge-oscillator-v2";
 
 const ASSETS = [
   "./",
@@ -6,7 +6,10 @@ const ASSETS = [
   "./css/app.css",
   "./js/app.js",
   "./js/model.js",
+  "./js/globe.js",
   "./vendor/plotly-basic.min.js",
+  "./vendor/three.module.js",
+  "./textures/earth.jpg",
   "./manifest.webmanifest",
   "./icons/favicon-32.png",
   "./icons/apple-touch-icon.png",
