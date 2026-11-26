@@ -58,7 +58,12 @@ export function Controls({
   onSpeed,
 }: {
   params: Record<string, number>;
-  diag: { b: number; sstDampingMonths: number; oceanMemoryMonths: number };
+  diag: {
+    b: number;
+    sstDampingMonths: number;
+    oceanMemoryMonths: number;
+    pieces: { zonal: number; ekman: number };
+  };
   ic: { tCelsius: number; hMeters: number };
   speed: number;
   onParam: (key: string, value: number) => void;

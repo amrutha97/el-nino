@@ -4,9 +4,11 @@ import {
   JIN_DEFAULTS,
   PRESETS,
   SCALES,
+  TIME_UNITS_PER_YEAR,
   boxMuller,
   diagnose,
   eulerMaruyamaStep,
+  growthPieces,
   linearNeutralSolution,
   monthsFromRate,
   mulberry32,
@@ -161,6 +163,80 @@ test("phase labels follow the recharge cycle, not a new rule in the ODE", () => 
   assert.equal(phaseOf(-1.2, 5).id, "lanina");
   assert.equal(phaseOf(0, 20).id, "recharged");
   assert.equal(phaseOf(0, -20).id, "discharged");
+});
+
+test("ζ = κ = ν = 0 leaves the 1997 growth rate and tendencies", () => {
+  const plain = { ...JIN_DEFAULTS, mu: 0.8, eps: 2 };
+  delete plain.zeta;
+  delete plain.kappa;
+  delete plain.nu;
+  const pieces = growthPieces(plain);
+  const b = plain.b0 * plain.mu;
+  assert.equal(pieces.R, plain.gamma * b - plain.c);
+  assert.equal(pieces.zonal, 0);
+  assert.equal(pieces.ekman, 0);
+  const got = tendencies(0.2, -0.1, plain);
+  assert.ok(Math.abs(got.dT - (pieces.R * -0.1 + plain.gamma * 0.2 - plain.eps * got.hE ** 3)) < 1e-12);
+  assert.equal(got.termsT.ndh, 0);
+  assert.equal(diagnose(plain).flavor, "cold-tongue");
+});
+
+test("Bjerknes index pieces sum to R, and Ekman and zonal advection only warm the SST equation", () => {
+  const p = { ...JIN_DEFAULTS, mu: 0.7, zeta: 0.4, kappa: 0.15 };
+  const pieces = growthPieces(p);
+  assert.ok(Math.abs(pieces.thermocline + pieces.zonal + pieces.ekman + pieces.damping - pieces.R) < 1e-12);
+  assert.ok(Math.abs(pieces.zonal - 0.4 * pieces.b) < 1e-12);
+  assert.ok(Math.abs(pieces.ekman - 0.15 * pieces.b) < 1e-12);
+  const withFeedbacks = tendencies(0.1, 0.2, p);
+  const without = tendencies(0.1, 0.2, { ...p, zeta: 0, kappa: 0 });
+  assert.ok(Math.abs(withFeedbacks.dh - without.dh) < 1e-12);
+  assert.ok(withFeedbacks.dT > without.dT);
+  const d = diagnose(p);
+  assert.equal(d.flavor, "cold-tongue");
+  assert.ok(Math.abs(d.growth - (pieces.R - p.r) / 2) < 1e-12);
+});
+
+test("warm-pool preset is the Jin and An zonal feedback, near neutral, anomaly placed west", () => {
+  const p = PRESETS.warmpool.params;
+  const d = diagnose(p);
+  assert.equal(d.flavor, "warm-pool");
+  assert.ok(d.zonalShare > 0.6);
+  assert.equal(d.regime, "neutral");
+  assert.ok(Math.abs(d.periodYears - 3.76) < 0.05);
+  assert.equal(d.pieces.kappa, 0);
+  assert.equal(p.nu, 0);
+});
+
+test("quadratic heating warms both phases, so El Niño outgrows La Niña", () => {
+  const p = { ...JIN_DEFAULTS, nu: 0.5, eps: 0 };
+  const warm = tendencies(0, 0.2, p);
+  const cold = tendencies(0, -0.2, p);
+  assert.ok(warm.termsT.ndh > 0);
+  assert.ok(cold.termsT.ndh > 0);
+  assert.ok(Math.abs(warm.termsT.ndh - p.nu * 0.04) < 1e-12);
+  assert.ok(Math.abs(warm.termsT.ndh - cold.termsT.ndh) < 1e-12);
+  assert.ok(warm.dh < 0);
+  assert.ok(cold.dh > 0);
+
+  const preset = PRESETS.asymmetric;
+  let { T, h } = toNondim(preset.tCelsius, preset.hMeters);
+  const dt = 0.004 * TIME_UNITS_PER_YEAR;
+  let maxT = -Infinity;
+  let minT = Infinity;
+  const steps = Math.round(30 / 0.004);
+  for (let i = 0; i < steps; i += 1) {
+    const next = rk4Step(h, T, preset.params, dt);
+    h = next.h;
+    T = next.T;
+    if (i > steps * 0.5) {
+      const shown = toDisplay(T, h);
+      maxT = Math.max(maxT, shown.tCelsius);
+      minT = Math.min(minT, shown.tCelsius);
+    }
+  }
+  assert.ok(maxT > 1.8);
+  assert.ok(minT < -1);
+  assert.ok(maxT > Math.abs(minT) * 1.4);
 });
 
 test("seeded noise generator is deterministic", () => {

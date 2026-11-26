@@ -87,6 +87,7 @@ export async function mountPacific(canvas) {
   let running = true;
   let paintedAt = 0;
   let paintedT = null;
+  let paintedShare = null;
   let paintedH = null;
 
   function applyCamera() {
@@ -153,14 +154,16 @@ export async function mountPacific(canvas) {
     el.style.top = `${y}px`;
   }
 
-  function update({ tCelsius, hWest, hEast }) {
+  function update({ tCelsius, hWest, hEast, zonalShare = 0 }) {
     const now = performance.now();
-    const moved = paintedT === null || Math.abs(tCelsius - paintedT) > 0.04 || Math.abs(hWest - paintedH) > 0.8;
+    const shareMoved = paintedShare === null || Math.abs(zonalShare - paintedShare) > 0.02;
+    const moved = paintedT === null || Math.abs(tCelsius - paintedT) > 0.04 || Math.abs(hWest - paintedH) > 0.8 || shareMoved;
     if (moved || now - paintedAt > 90) {
-      paint.draw(tCelsius, hWest);
+      paint.draw(tCelsius, hWest, zonalShare);
       paintedAt = now;
       paintedT = tCelsius;
       paintedH = hWest;
+      paintedShare = zonalShare;
     }
     ribbon.update(hWest, hEast);
     const windEast = tCelsius >= 0;
@@ -190,8 +193,11 @@ export async function mountPacific(canvas) {
         : tCelsius > 0
           ? " Blue arrows leave the equator: the warm east is discharging heat."
           : " Blue arrows return to the equator: the cold east is recharging heat.";
+      const place = zonalShare > 0.5
+        ? "drawn farther west, over the central Pacific, because the zonal advective feedback is larger than the thermocline feedback (Kug, Jin and An, 2009)"
+        : "drawn over the central and eastern equatorial Pacific, the cold-tongue side of the same split";
       caption.textContent =
-        `The photograph is NASA’s Blue Marble. Coral or teal on the water is Jin’s one eastern temperature, ${signed(tCelsius)} °C, drawn only over the central and eastern equatorial Pacific. Gold or blue in the west is the warm-pool heat, h_W = ${signed(hWest, 0)} m. The ribbon is the thermocline from that west value to h_E = ${signed(hEast, 0)} m in the east: gold is deeper, blue is shallower. ${wind}${flux}`;
+        `The photograph is NASA’s Blue Marble. Coral or teal on the water is the model’s one temperature, ${signed(tCelsius)} °C, ${place}. Gold or blue in the west is the warm-pool heat, h_W = ${signed(hWest, 0)} m. The ribbon is the thermocline from that west value to h_E = ${signed(hEast, 0)} m in the east: gold is deeper, blue is shallower. ${wind}${flux}`;
     }
   }
 
@@ -244,7 +250,7 @@ function createAnomalyPainter() {
   texture.colorSpace = THREE.SRGBColorSpace;
   return {
     texture,
-    draw(tCelsius, hWest) {
+    draw(tCelsius, hWest, zonalShare = 0) {
       const data = image.data;
       data.fill(0);
       for (let y = 0; y < height; y += 1) {
@@ -254,7 +260,7 @@ function createAnomalyPainter() {
           const lon = lons[x];
           const x360 = lon < 0 ? lon + 360 : lon;
           const i = (y * width + x) * 4;
-          const sst = sstPatch(lat, x360, tCelsius);
+          const sst = sstPatch(lat, x360, tCelsius, zonalShare);
           const heat = heatPatch(lat, x360, hWest);
           if (sst === 0 && heat === 0) continue;
           if (Math.abs(sst) >= Math.abs(heat)) {
@@ -290,13 +296,21 @@ function createAnomalyPainter() {
   };
 }
 
-/** T_E spread over the central and eastern equatorial Pacific only. */
-function sstPatch(lat, lon360, tCelsius) {
-  if (lon360 < 175 || lon360 > 282 || Math.abs(lat) > 18) return 0;
+/**
+ * T_E painted on the equator. zonalShare = 0 keeps the 1997 cold-tongue
+ * center at 125°W. Kug, Jin and An (2008): when zonal advection dominates,
+ * the warm anomaly sits farther west, toward the warm pool.
+ */
+function sstPatch(lat, lon360, tCelsius, zonalShare = 0) {
+  const share = Math.max(0, Math.min(1, zonalShare));
+  const center = 235 - share * 45;
+  const west = 175 - share * 30;
+  const east = 282 - share * 20;
+  if (lon360 < west || lon360 > east || Math.abs(lat) > 18) return 0;
   const latWeight = Math.exp(-(lat * lat) / (2 * 5.2 * 5.2));
-  const zonal = Math.exp(-((lon360 - 235) ** 2) / (2 * 16 * 16));
-  const fade = smoothstep(lon360, 175, 198)
-    * smoothstep(282 - lon360, 0, 12)
+  const zonal = Math.exp(-((lon360 - center) ** 2) / (2 * 16 * 16));
+  const fade = smoothstep(lon360, west, west + 23)
+    * smoothstep(east - lon360, 0, 12)
     * smoothstep(18 - Math.abs(lat), 0, 5);
   return tCelsius * latWeight * zonal * fade;
 }

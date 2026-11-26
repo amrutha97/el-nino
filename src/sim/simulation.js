@@ -49,8 +49,14 @@ function regimeSentence(diag) {
     return "These coefficients do not oscillate. The recharge coupling α b γ is too weak compared with the damping, so anomalies just fade.";
   }
   const factor = Math.exp(diag.growthPerYear);
-  if (diag.regime === "neutral") {
-    return `Neutral cycle, period ${diag.periodYears.toFixed(1)} years. Amplitude stays where you set it, which is Jin’s critical coupling when the other coefficients are his defaults (μ = 2/3).`;
+    if (diag.regime === "neutral") {
+    const laterOff = Math.abs(diag.pieces.zonal) < 1e-9
+      && Math.abs(diag.pieces.ekman) < 1e-9
+      && Math.abs(diag.pieces.nu) < 1e-9;
+    const tail = laterOff
+      ? " With the later coefficients at zero, a neutral cycle at Jin’s other defaults is his critical coupling μ = 2/3."
+      : " The later feedbacks are on, and the sliders are balanced so the growth rate is still zero.";
+    return `Neutral cycle, period ${diag.periodYears.toFixed(1)} years. Amplitude stays where you set it.${tail}`;
   }
   if (diag.regime === "growing") {
     return `Growing cycle, period ${diag.periodYears.toFixed(1)} years. Linear amplitude multiplies by about ${factor.toFixed(2)} each year until the cubic term, if it is on, levels it off.`;
@@ -146,9 +152,13 @@ export function createSimulation() {
     const det = tendencies(state.h, state.T, state.params);
     const hE = det.hE * SCALES.hMeters;
     const rates = {
-      bjerknes: det.termsT.bjerknes * PER_MONTH_T,
+      damping: det.termsT.damping * PER_MONTH_T,
+      tilt: det.termsT.tilt * PER_MONTH_T,
+      zonal: det.termsT.zonal * PER_MONTH_T,
+      ekman: det.termsT.ekman * PER_MONTH_T,
       thermocline: det.termsT.thermocline * PER_MONTH_T,
       cubic: det.termsT.cubic * PER_MONTH_T,
+      ndh: det.termsT.ndh * PER_MONTH_T,
       memory: det.termsH.memory * PER_MONTH_H,
       sverdrup: det.termsH.sverdrup * PER_MONTH_H,
     };

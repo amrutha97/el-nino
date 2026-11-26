@@ -5,10 +5,25 @@
  * Part I: Conceptual model. Journal of the Atmospheric Sciences, 54(7),
  * 811–829. https://doi.org/10.1175/1520-0469(1997)054<0811:AEORPF>2.0.CO;2
  *
- * Integrated equations are Jin's (2.6), (3.1), and (3.4). The Ekman
- * feedback δ_s b′ is omitted, so R = γ b − c, as Jin does after (2.6).
- * Part II derives this same two-equation system from a stripped-down
- * coupled model; the playground integrates the Part I conceptual form.
+ * The default integration is Jin's (2.6), (3.1), and (3.4). Part II
+ * derives that same two-equation system; the playground integrates the
+ * Part I form. Three later papers add terms that are zero by default,
+ * so the 1997 oscillator is recovered exactly when those sliders sit at 0:
+ *
+ *   Jin & An (1999) put a zonal advective feedback ζ b T_E on the SST
+ *   equation, beside the thermocline feedback. Kug, Jin & An (2009),
+ *   one of Jin's most cited papers, use that split to separate cold-tongue
+ *   El Niño (thermocline feedback) from warm-pool El Niño (zonal advection).
+ *
+ *   Jin, Kim & Bejarano (2006) define the Bjerknes stability index as the
+ *   growth rate, and restore the Ekman feedback κ b T_E that Jin drops
+ *   after (2.6). Here R = (γ + ζ + κ) b − c, and the index is σ = (R − r)/2.
+ *
+ *   An & Jin (2004) show nonlinear dynamical heating that warms the east
+ *   in both El Niño and La Niña. Their papers diagnose that heating from
+ *   a mixed-layer budget and add it to (2.6) as an extra SST forcing N′.
+ *   The slider ν is the schematic N′ = ν T_E². It is not a term they publish
+ *   as a closed formula. The 1997 cubic is odd, so it cannot make this asymmetry.
  *
  * Nondimensional scales stated in Part I (section 2):
  *   [h] = 150 m,  [T] = 7.5 K,  [t] = 2 months.
@@ -37,6 +52,22 @@ export const JIN_DEFAULTS = Object.freeze({
   sig1: 0,
   /** Heating noise variance σ₂² in (3.4). Jin's illustrated value is 2/15. */
   sig2: 0,
+  /**
+   * Zonal advective feedback ζ, Jin & An (1999). Same units as γ.
+   * Zero is the 1997 model, which has only the thermocline feedback.
+   */
+  zeta: 0,
+  /**
+   * Ekman feedback κ. Jin sets the Ekman piece δ_s b′ to zero after (2.6).
+   * Jin, Kim & Bejarano (2006) put it back in the Bjerknes index. Zero is 1997.
+   */
+  kappa: 0,
+  /**
+   * Schematic nonlinear dynamical heating, N′ = ν T_E² on the SST equation.
+   * An & Jin (2004) diagnose N′ from a heat budget; this even term is the
+   * simplest forcing with the sign they describe. Zero leaves (3.1).
+   */
+  nu: 0,
 });
 
 /**
@@ -79,6 +110,33 @@ export const PRESETS = {
     tCelsius: 0,
     hMeters: 40,
   },
+  warmpool: {
+    id: "warmpool",
+    label: "Warm-pool El Niño",
+    detail: "Zonal advection larger than the thermocline feedback",
+    // Tuned so ζ b > γ b, the cycle is near neutral, and the period stays
+    // near 4 years. Coefficients are stated again in the test.
+    params: {
+      ...JIN_DEFAULTS,
+      mu: 0.8,
+      gamma: 0.35,
+      zeta: 0.7,
+      c: 1.85,
+      alpha: 0.2,
+      eps: 0,
+      r: 0.25,
+    },
+    tCelsius: 0.6,
+    hMeters: 8,
+  },
+  asymmetric: {
+    id: "asymmetric",
+    label: "Asymmetric ENSO",
+    detail: "Quadratic heating makes El Niño outgrow La Niña",
+    params: { ...JIN_DEFAULTS, mu: 0.75, eps: 1.1, nu: 0.85, sig1: 0, sig2: 0 },
+    tCelsius: 0.4,
+    hMeters: 6,
+  },
 };
 
 export function cloneParams(partial = {}) {
@@ -104,6 +162,36 @@ export function couplingB(p) {
   return p.b0 * p.mu;
 }
 
+function optional(p, key) {
+  const value = p[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+/**
+ * Pieces of the SST coefficient R in the Bjerknes index.
+ * Jin, Kim & Bejarano (2006), their equation (9), split R into
+ * damping, thermocline feedback, zonal advection, and Ekman feedback.
+ * ζ = κ = 0 leaves R = γ b − c, Jin's expression after (2.6).
+ */
+export function growthPieces(p) {
+  const b = couplingB(p);
+  const thermocline = p.gamma * b;
+  const zonal = optional(p, "zeta") * b;
+  const ekman = optional(p, "kappa") * b;
+  const damping = -p.c;
+  return {
+    b,
+    zeta: optional(p, "zeta"),
+    kappa: optional(p, "kappa"),
+    nu: optional(p, "nu"),
+    thermocline,
+    zonal,
+    ekman,
+    damping,
+    R: thermocline + zonal + ekman + damping,
+  };
+}
+
 /** Dimensional east–west tilt: meters of thermocline difference per °C. */
 export function tiltMetersPerCelsius(bNondim) {
   return bNondim * (SCALES.hMeters / SCALES.tCelsius);
@@ -121,8 +209,8 @@ export function monthsFromRate(rate) {
  * Frequency ω = sqrt(α b γ − (R + r)² / 4), when that is positive.
  */
 export function diagnose(p) {
-  const b = couplingB(p);
-  const R = p.gamma * b - p.c;
+  const pieces = growthPieces(p);
+  const { b, R } = pieces;
   const growth = (R - p.r) / 2;
   const disc = p.alpha * b * p.gamma - ((R + p.r) ** 2) / 4;
   const oscillatory = disc > 0;
@@ -152,9 +240,18 @@ export function diagnose(p) {
   else if (oscillatory && growth < -1e-3) regime = "damped";
   else if (oscillatory) regime = "neutral";
 
+  const positive = Math.max(0, pieces.thermocline) + Math.max(0, pieces.zonal);
+  const zonalShare = positive > 0 ? Math.max(0, pieces.zonal) / positive : 0;
+  // Kug, Jin & An (2009): warm-pool events when zonal advection dominates
+  // the thermocline feedback; cold-tongue events when it does not.
+  const flavor = pieces.zonal > pieces.thermocline && pieces.zonal > 0 ? "warm-pool" : "cold-tongue";
+
   return {
     b,
     R,
+    pieces,
+    zonalShare,
+    flavor,
     growth,
     growthPerYear,
     disc,
@@ -172,26 +269,32 @@ export function diagnose(p) {
 
 /**
  * Deterministic tendencies.
- * dT_E/dt = R T_E + γ h_W − ε_n (h_W + b T_E)³
+ * dT_E/dt = R T_E + γ h_W − ε_n (h_W + b T_E)³ + ν T_E²
  * dh_W/dt = −r h_W − α b T_E
+ * R = (γ + ζ + κ) b − c
  * h_E = h_W + b T_E   (eq. 2.1 with τ = b T_E)
+ * ν = ζ = κ = 0 is Jin's (2.6) and (3.1).
  */
 export function tendencies(h, T, p) {
-  const b = couplingB(p);
-  const R = p.gamma * b - p.c;
+  const pieces = growthPieces(p);
+  const { b, R } = pieces;
   const hE = h + b * T;
-  const cubic = -p.eps * hE * hE * hE;
-  const bjerknes = R * T;
+  const damping = pieces.damping * T;
+  const tilt = pieces.thermocline * T;
+  const zonal = pieces.zonal * T;
+  const ekman = pieces.ekman * T;
   const thermocline = p.gamma * h;
+  const cubic = -(p.eps || 0) * hE * hE * hE;
+  const ndh = pieces.nu * T * T;
   const memory = -p.r * h;
   const sverdrup = -p.alpha * b * T;
   return {
     b,
     R,
     hE,
-    dT: bjerknes + thermocline + cubic,
+    dT: damping + tilt + zonal + ekman + thermocline + cubic + ndh,
     dh: memory + sverdrup,
-    termsT: { bjerknes, thermocline, cubic },
+    termsT: { damping, tilt, zonal, ekman, thermocline, cubic, ndh, bjerknes: damping + tilt + zonal + ekman },
     termsH: { memory, sverdrup },
   };
 }
