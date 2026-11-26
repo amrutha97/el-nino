@@ -47,13 +47,7 @@ Open [http://127.0.0.1:8080](http://127.0.0.1:8080). `serve.py` serves the `dist
 3. Production branch: `main`.
 4. Deploy. That `*.vercel.app` address stays put and updates on every push to `main`.
 
-**GitHub Pages** is `.github/workflows/pages.yml`. On every push to `main` it runs `npm run build` and publishes `dist`.
-
-1. Merge to `main`.
-2. In the repository settings, open Pages and set the source to GitHub Actions.
-3. The address is `https://amrutha97.github.io/el-nino/`.
-
-On the free plan, GitHub Pages needs the repository to be public. Vercel does not.
+**GitHub Pages** is [https://amrutha97.github.io/el-nino/](https://amrutha97.github.io/el-nino/). The repository source is GitHub Actions. `.github/workflows/pages.yml` builds `dist` on every push to `main` and publishes it. The repository is public, which the free plan requires. Vercel does not.
 
 Check the equations without the browser:
 
