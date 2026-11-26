@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/icon";
@@ -7,7 +7,6 @@ import { useFullscreen } from "@/components/use-fullscreen";
 type EarthApi = {
   update: (state: { tCelsius: number; hWest: number; hEast: number; zonalShare: number }) => void;
   resize: () => void;
-  setView: (name: string) => void;
   dispose: () => void;
 };
 type CycleApi = {
@@ -56,7 +55,6 @@ export function Journey({
   const orbitCanvas = useRef<HTMLCanvasElement>(null);
   const earthApi = useRef<EarthApi | null>(null);
   const orbitApi = useRef<CycleApi | null>(null);
-  const [camera, setCamera] = useState("pacific");
   const latest = useRef({ tCelsius, hWest, hEast, zonalShare, phaseRange, trailA, trailB });
   latest.current = { tCelsius, hWest, hEast, zonalShare, phaseRange, trailA, trailB };
   const onDragRef = useRef(onDrag);
@@ -75,7 +73,6 @@ export function Journey({
           return;
         }
         earthApi.current = mounted;
-        mounted.setView(camera);
         const data = latest.current;
         mounted.update({
           tCelsius: data.tCelsius,
@@ -95,10 +92,6 @@ export function Journey({
       earthApi.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    earthApi.current?.setView(camera);
-  }, [camera]);
 
   useEffect(() => {
     earthApi.current?.update({ tCelsius, hWest, hEast, zonalShare });
@@ -137,22 +130,7 @@ export function Journey({
   const sign = (value: number, digits: number) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toFixed(digits)}`;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="globe-views">
-        {(["pacific", "equator", "globe"] as const).map((item) => (
-          <Button
-            key={item}
-            type="button"
-            variant="outline"
-            data-globe-view={item}
-            aria-pressed={camera === item}
-            onClick={() => setCamera(item)}
-          >
-            {item === "pacific" ? "Pacific" : item === "equator" ? "Equator" : "Whole Earth"}
-          </Button>
-        ))}
-      </div>
-      <div className="journey">
+    <div className="journey">
         <div
           ref={earthStage}
           className={`scene-stage globe-stage on-dark ${fullscreen.fallback ? "is-fallback" : ""}`}
@@ -197,7 +175,6 @@ export function Journey({
             </p>
           ))}
         </div>
-      </div>
     </div>
   );
 }

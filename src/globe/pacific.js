@@ -8,11 +8,8 @@
 
 import * as THREE from "three";
 
-const VIEWS = {
-  pacific: { lat: 6, lon: -150, dist: 2.05, aimY: -0.32 },
-  equator: { lat: 22, lon: -145, dist: 1.48, aimY: 0 },
-  globe: { lat: 10, lon: -155, dist: 3.15, aimY: -0.08 },
-};
+/** One camera: equatorial Pacific, framed so the recharge ribbon stays above the phase name. */
+const PACIFIC = { lat: 6, lon: -150, dist: 2.05, aimY: -0.32 };
 
 const WIND_LONS = [152, 168, 184, 200, 216];
 const FLUX_LONS = [176, 196, 216];
@@ -81,8 +78,8 @@ export async function mountPacific(canvas) {
   const fill = new THREE.DirectionalLight(0x6ea0ff, 0.28);
   scene.add(fill);
 
-  const view = { ...VIEWS.pacific };
-  const target = { ...VIEWS.pacific };
+  const view = { ...PACIFIC };
+  const target = { ...PACIFIC };
   let frame = 0;
   let running = true;
   let paintedAt = 0;
@@ -186,15 +183,6 @@ export async function mountPacific(canvas) {
 
   bindOrbit(canvas, target);
 
-  function setView(name) {
-    const next = VIEWS[name];
-    if (!next) return;
-    target.lat = next.lat;
-    target.lon = next.lon;
-    target.dist = next.dist;
-    target.aimY = next.aimY;
-  }
-
   const observer = new ResizeObserver(() => resize());
   observer.observe(stage);
   resize();
@@ -204,7 +192,6 @@ export async function mountPacific(canvas) {
   return {
     update,
     resize,
-    setView,
     dispose() {
       running = false;
       cancelAnimationFrame(frame);

@@ -225,16 +225,10 @@ body {
   height: 260px;
   min-height: 260px;
 }
-.globe-views {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-}
 .section-stage.scene-stage { height: 220px; min-height: 220px; }
 
 @media (min-width: 768px) {
   .journey .scene-stage { height: 300px; min-height: 300px; }
-  .globe-views { display: flex; }
 }
 
 @media (min-width: 900px) {
@@ -274,12 +268,6 @@ body {
 }
 
 #globe-fallback[hidden] { display: none !important; }
-
-.globe-views button[aria-pressed="true"] {
-  background: hsl(var(--accent));
-  color: hsl(var(--foreground));
-  border-color: hsl(var(--foreground));
-}
 
 .playbar button[aria-pressed="true"] {
   background: hsl(var(--accent));
