@@ -1,4 +1,4 @@
-/** Labels and slider copy. None of this enters the equations. */
+/** Labels. None of this enters the equations. */
 
 export const CONTROLS = [
   {
@@ -10,35 +10,32 @@ export const CONTROLS = [
     max: 1.5,
     step: 0.01,
     digits: 2,
-    sentence:
-      "How strongly eastern SST pulls on the wind. Raising μ strengthens the Bjerknes feedback and the recharge–discharge together.",
+    sentence: "Wind response per degree of eastern SST. b = b₀ μ sets both the Bjerknes feedback and the Sverdrup discharge.",
     gloss: (_p, d) => `b = ${d.b.toFixed(2)}`,
   },
   {
     group: "Coupling",
     key: "b0",
     symbol: "b₀",
-    name: "Wind–SST coupling scale",
+    name: "Wind–SST scale",
     min: 0.5,
     max: 4,
     step: 0.05,
     digits: 2,
-    sentence:
-      "How many meters of east–west thermocline tilt one degree would set up at μ = 1. Jin’s high-end value 2.5 is 50 m per °C.",
-    gloss: (p) => `${(p.b0 * 20).toFixed(0)} m/°C at μ = 1`,
+    sentence: "East–west thermocline tilt per degree at μ = 1. b₀ = 2.5 is 50 m °C⁻¹.",
+    gloss: (p) => `${(p.b0 * 20).toFixed(0)} m °C⁻¹ at μ = 1`,
   },
   {
     group: "Coupling",
     key: "c",
     symbol: "c",
-    name: "Eastern SST damping",
+    name: "SST damping",
     min: 0.2,
     max: 2,
     step: 0.01,
     digits: 2,
-    sentence:
-      "How fast the eastern Pacific is pulled back toward normal by upwelling and heat loss to the air. Jin’s c = 1 is about two months.",
-    gloss: (_p, d) => `${d.sstDampingMonths.toFixed(1)} mo damping`,
+    sentence: "Damping of T_E by upwelling and surface heat flux. c = 1 is a two-month damping time.",
+    gloss: (_p, d) => `${d.sstDampingMonths.toFixed(1)} months`,
   },
   {
     group: "Coupling",
@@ -49,9 +46,8 @@ export const CONTROLS = [
     max: 1.5,
     step: 0.01,
     digits: 2,
-    sentence:
-      "How strongly a deep thermocline warms the eastern Pacific. This is the γ h_W term in the temperature equation.",
-    gloss: () => "warms the east when h_W > 0",
+    sentence: "Warming of the east by western thermocline depth, the term γ h_W.",
+    gloss: () => "γ h_W",
   },
   {
     group: "Ocean memory",
@@ -62,35 +58,32 @@ export const CONTROLS = [
     max: 1,
     step: 0.01,
     digits: 2,
-    sentence:
-      "How fast an extra-deep or extra-shallow western thermocline relaxes. Jin’s r = 0.25 is about an eight-month memory.",
-    gloss: (_p, d) => `${d.oceanMemoryMonths.toFixed(1)} mo memory`,
+    sentence: "Relaxation of h_W. r = 0.25 is an eight-month adjustment time.",
+    gloss: (_p, d) => `${d.oceanMemoryMonths.toFixed(1)} months`,
   },
   {
     group: "Ocean memory",
     key: "alpha",
     symbol: "α",
-    name: "Sverdrup recharge efficiency",
+    name: "Sverdrup discharge",
     min: 0,
     max: 0.5,
     step: 0.005,
     digits: 3,
-    sentence:
-      "How efficiently anomalous winds drain or pile equatorial heat. Jin sets α to about half of r.",
+    sentence: "Discharge of equatorial heat by the wind, −α b T_E. α ≈ r/2 in Jin (1997).",
     gloss: (p) => `α / r = ${(p.r ? p.alpha / p.r : 0).toFixed(2)}`,
   },
   {
     group: "Saturation and noise",
     key: "eps",
     symbol: "εₙ",
-    name: "Cubic thermocline saturation",
+    name: "Cubic saturation",
     min: 0,
     max: 8,
     step: 0.1,
     digits: 1,
-    sentence:
-      "Stops a very deep or very shallow thermocline from warming or cooling the east without limit. Zero is Jin’s linear oscillator.",
-    gloss: (p) => (p.eps === 0 ? "linear model" : "nonlinear (3.1)"),
+    sentence: "Thermocline saturation −εₙ h_E³. εₙ = 0 is the linear system (2.6).",
+    gloss: (p) => (p.eps === 0 ? "(2.6)" : "(3.1)"),
   },
   {
     group: "Saturation and noise",
@@ -101,9 +94,8 @@ export const CONTROLS = [
     max: 0.4,
     step: 0.005,
     digits: 3,
-    sentence:
-      "Random wind. It shakes the western thermocline and, through the tilt, the SST. Zero is the deterministic model.",
-    gloss: (p) => (p.sig1 === 0 ? "off" : "ξ₁ on"),
+    sentence: "Variance of the wind ξ₁ in (3.4). One draw enters both equations, as −α ξ₁ and +γ ξ₁.",
+    gloss: (p) => (p.sig1 === 0 ? "ξ₁ = 0" : "ξ₁"),
   },
   {
     group: "Saturation and noise",
@@ -114,25 +106,23 @@ export const CONTROLS = [
     max: 0.4,
     step: 0.005,
     digits: 3,
-    sentence:
-      "Random heating of the eastern Pacific. Jin’s illustrated variance is 2/15, about 1°C per month of white noise. Zero turns it off.",
-    gloss: (p) => (Math.abs(p.sig2 - 2 / 15) < 0.01 ? "Jin’s 2/15" : p.sig2 === 0 ? "off" : "ξ₂ on"),
+    sentence: "Variance of the heating ξ₂ on the SST equation. Jin’s Fig. 6 uses 2/15.",
+    gloss: (p) => (Math.abs(p.sig2 - 2 / 15) < 0.01 ? "2/15" : p.sig2 === 0 ? "ξ₂ = 0" : "ξ₂"),
   },
   {
-    group: "Later papers",
+    group: "Feedbacks",
     key: "zeta",
     symbol: "ζ",
-    name: "Zonal advective feedback",
+    name: "Zonal advection",
     min: 0,
     max: 1.2,
     step: 0.01,
     digits: 2,
-    sentence:
-      "Westerlies that go with a warm east carry warm water toward the cold tongue. Jin and An (1999) add this beside the thermocline feedback. Zero is the 1997 model.",
-    gloss: (_p, d) => `ζ b = ${d.pieces.zonal.toFixed(2)}`,
+    sentence: "Zonal advective feedback, Jin and An (1999). ζ = 0 leaves the thermocline feedback alone.",
+    gloss: (_p, d) => `ζb = ${d.pieces.zonal.toFixed(2)}`,
   },
   {
-    group: "Later papers",
+    group: "Feedbacks",
     key: "kappa",
     symbol: "κ",
     name: "Ekman feedback",
@@ -140,35 +130,33 @@ export const CONTROLS = [
     max: 0.8,
     step: 0.01,
     digits: 2,
-    sentence:
-      "Those same westerlies weaken upwelling, so less cold water reaches the surface. Jin drops this after equation (2.6). The 2006 Bjerknes index puts it back. Zero is the 1997 truncation.",
-    gloss: (_p, d) => `κ b = ${d.pieces.ekman.toFixed(2)}`,
+    sentence: "Ekman feedback in the Bjerknes index, Jin, Kim, and Bejarano (2006). κ = 0 is (2.6).",
+    gloss: (_p, d) => `κb = ${d.pieces.ekman.toFixed(2)}`,
   },
   {
-    group: "Later papers",
+    group: "Feedbacks",
     key: "nu",
     symbol: "ν",
-    name: "Nonlinear dynamical heating",
+    name: "Nonlinear heating",
     min: 0,
     max: 2,
     step: 0.05,
     digits: 2,
-    sentence:
-      "An and Jin (2004) find heating that warms the east in both El Niño and La Niña, so the warm event outgrows the cold one. They diagnose it from a heat budget. This slider is ν T², the simplest term with that sign, added onto equation (2.6). Zero leaves Jin’s symmetric cubic.",
-    gloss: (p) => (p.nu === 0 ? "off, 1997 cubic only" : "ν T² on"),
+    sentence: "Nonlinear dynamical heating ν T_E², the sign in An and Jin (2004). ν = 0 leaves (3.1).",
+    gloss: (p) => (p.nu === 0 ? "ν = 0" : "ν T_E²"),
   },
 ];
 
 export const TERM_SPEC = [
-  { id: "damping", eq: "−c T_E", meaning: "upwelling and heat loss pulling the east back" },
-  { id: "tilt", eq: "γ b T_E", meaning: "thermocline feedback from the wind-driven tilt" },
-  { id: "zonal", eq: "ζ b T_E", meaning: "zonal advective feedback, Jin and An 1999" },
-  { id: "ekman", eq: "κ b T_E", meaning: "Ekman feedback in the 2006 Bjerknes index" },
-  { id: "thermocline", eq: "γ h_W", meaning: "stored western heat reaching the east" },
-  { id: "cubic", eq: "−εₙ h_E³", meaning: "1997 saturation, symmetric in warm and cold" },
-  { id: "ndh", eq: "ν T_E²", meaning: "schematic of An and Jin’s nonlinear heating" },
-  { id: "memory", eq: "−r h_W", meaning: "western thermocline relaxing" },
-  { id: "sverdrup", eq: "−α b T_E", meaning: "wind draining or piling heat" },
+  { id: "damping", eq: "−c T_E", meaning: "damping of eastern SST" },
+  { id: "tilt", eq: "γ b T_E", meaning: "thermocline feedback from the tilt" },
+  { id: "zonal", eq: "ζ b T_E", meaning: "zonal advective feedback" },
+  { id: "ekman", eq: "κ b T_E", meaning: "Ekman feedback" },
+  { id: "thermocline", eq: "γ h_W", meaning: "western heat reaching the east" },
+  { id: "cubic", eq: "−εₙ h_E³", meaning: "cubic saturation, odd in h_E" },
+  { id: "ndh", eq: "ν T_E²", meaning: "nonlinear dynamical heating" },
+  { id: "memory", eq: "−r h_W", meaning: "adjustment of the western thermocline" },
+  { id: "sverdrup", eq: "−α b T_E", meaning: "Sverdrup discharge or recharge" },
 ];
 
-export const CONTROL_GROUPS = ["Coupling", "Ocean memory", "Saturation and noise", "Later papers"];
+export const CONTROL_GROUPS = ["Coupling", "Ocean memory", "Saturation and noise", "Feedbacks"];

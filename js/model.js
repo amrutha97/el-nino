@@ -6,9 +6,9 @@
  * 811–829. https://doi.org/10.1175/1520-0469(1997)054<0811:AEORPF>2.0.CO;2
  *
  * The default integration is Jin's (2.6), (3.1), and (3.4). Part II
- * derives that same two-equation system; the playground integrates the
+ * derives that same two-equation system. This file integrates the
  * Part I form. Three later papers add terms that are zero by default,
- * so the 1997 oscillator is recovered exactly when those sliders sit at 0:
+ * so the 1997 oscillator is recovered exactly when those coefficients are 0:
  *
  *   Jin & An (1999) put a zonal advective feedback ζ b T_E on the SST
  *   equation, beside the thermocline feedback. Kug, Jin & An (2009),
@@ -78,7 +78,7 @@ export const PRESETS = {
   neutral: {
     id: "neutral",
     label: "Neutral",
-    detail: "Jin’s critical coupling, a steady cycle",
+    detail: "μ = 2/3, closed orbit",
     params: { ...JIN_DEFAULTS, mu: 2 / 3, eps: 0, sig1: 0, sig2: 0 },
     tCelsius: 1.125,
     hMeters: 0,
@@ -86,7 +86,7 @@ export const PRESETS = {
   growing: {
     id: "growing",
     label: "Growing El Niño",
-    detail: "Supercritical coupling, cubic term limits the growth",
+    detail: "μ = 0.75, εₙ = 0.8",
     // Jin's Fig. 11 uses μ = 0.7 and ε_n = 3, close to the Hopf point.
     // μ = 0.75 and ε_n = 0.8 is the same equation (3.1), a little further
     // above critical so the warm event grows to about ±1.7°C and then levels off.
@@ -97,7 +97,7 @@ export const PRESETS = {
   lanina: {
     id: "lanina",
     label: "La Niña",
-    detail: "Cold eastern Pacific on the neutral cycle",
+    detail: "T_E = −1.5 °C, neutral coefficients",
     params: { ...JIN_DEFAULTS, mu: 2 / 3, eps: 0, sig1: 0, sig2: 0 },
     tCelsius: -1.5,
     hMeters: -8,
@@ -105,7 +105,7 @@ export const PRESETS = {
   recharge: {
     id: "recharge",
     label: "Strong recharge",
-    detail: "Heat piled in the west, east still normal",
+    detail: "h_W = +40 m, T_E = 0",
     params: { ...JIN_DEFAULTS, mu: 2 / 3, eps: 0, sig1: 0, sig2: 0 },
     tCelsius: 0,
     hMeters: 40,
@@ -113,7 +113,7 @@ export const PRESETS = {
   warmpool: {
     id: "warmpool",
     label: "Warm-pool El Niño",
-    detail: "Zonal advection larger than the thermocline feedback",
+    detail: "ζ b > γ b, central Pacific SST",
     // Tuned so ζ b > γ b, the cycle is near neutral, and the period stays
     // near 4 years. Coefficients are stated again in the test.
     params: {
@@ -132,7 +132,7 @@ export const PRESETS = {
   asymmetric: {
     id: "asymmetric",
     label: "Asymmetric ENSO",
-    detail: "Quadratic heating makes El Niño outgrow La Niña",
+    detail: "ν T_E², warm peak exceeds the cold peak",
     params: { ...JIN_DEFAULTS, mu: 0.75, eps: 1.1, nu: 0.85, sig1: 0, sig2: 0 },
     tCelsius: 0.4,
     hMeters: 6,
@@ -362,27 +362,27 @@ export function phaseOf(tCelsius, hMeters) {
     return {
       id: "elnino",
       title: "El Niño",
-      line: "The eastern Pacific is warm. Westerly wind anomalies are draining equatorial heat, so the western thermocline is shoaling.",
+      line: "T_E > 0. Westerly stress discharges equatorial heat and h_W shoals.",
     };
   }
   if (tCelsius < -0.35) {
     return {
       id: "lanina",
       title: "La Niña",
-      line: "The eastern Pacific is cold. Stronger trades are recharging equatorial heat, so the western thermocline is deepening.",
+      line: "T_E < 0. Easterly stress recharges equatorial heat and h_W deepens.",
     };
   }
   if (hMeters > 0) {
     return {
       id: "recharged",
       title: "Recharged",
-      line: "The east is near normal and the west is still deep. That stored heat is what warms the east next.",
+      line: "T_E ≈ 0 and h_W > 0. Recharge leads the warm event.",
     };
   }
   return {
     id: "discharged",
     title: "Discharged",
-    line: "The east is near normal and equatorial heat has been drained. The shallow thermocline is what cools the east next.",
+      line: "T_E ≈ 0 and h_W < 0. Discharge leads the cold event.",
   };
 }
 

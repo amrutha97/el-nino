@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serve the recharge-oscillator playground.
+"""Serve the built recharge oscillator.
 
 One command from the repo root:
 

@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         name: "ENSO Recharge Oscillator",
         short_name: "Recharge",
-        description: "Play Fei-Fei Jin’s 1997 recharge oscillator for El Niño.",
+        description: "Eastern SST and western thermocline in Jin’s recharge oscillator (1997).",
         start_url: ".",
         scope: ".",
         display: "standalone",

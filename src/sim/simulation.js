@@ -1,6 +1,6 @@
 /**
- * Playback state for Jin's oscillator. The equations live in js/model.js.
- * This file only steps them, stores history, and builds the readout.
+ * Playback for one or two integrations of the recharge oscillator.
+ * The equations stay in js/model.js.
  */
 
 import {
@@ -43,68 +43,72 @@ function nice(value) {
 
 function regimeSentence(diag) {
   if (!diag.oscillatory && diag.growth > 0) {
-    return "These coefficients do not oscillate: the Bjerknes growth is too fast for the ocean memory to turn it into a cycle. Jin’s moderate coupling does oscillate.";
+    return "Unstable and non-oscillatory. Growth exceeds the recharge coupling α b γ, so the mode does not turn over.";
   }
   if (!diag.oscillatory) {
-    return "These coefficients do not oscillate. The recharge coupling α b γ is too weak compared with the damping, so anomalies just fade.";
+    return "Damped and non-oscillatory. Anomalies decay without a zero crossing set by α b γ.";
   }
   const factor = Math.exp(diag.growthPerYear);
-    if (diag.regime === "neutral") {
-    const laterOff = Math.abs(diag.pieces.zonal) < 1e-9
-      && Math.abs(diag.pieces.ekman) < 1e-9
-      && Math.abs(diag.pieces.nu) < 1e-9;
-    const tail = laterOff
-      ? " With the later coefficients at zero, a neutral cycle at Jin’s other defaults is his critical coupling μ = 2/3."
-      : " The later feedbacks are on, and the sliders are balanced so the growth rate is still zero.";
-    return `Neutral cycle, period ${diag.periodYears.toFixed(1)} years. Amplitude stays where you set it.${tail}`;
+  if (diag.regime === "neutral") {
+    return `Neutral. Period ${diag.periodYears.toFixed(1)} yr. Amplitude is set by the initial state.`;
   }
   if (diag.regime === "growing") {
-    return `Growing cycle, period ${diag.periodYears.toFixed(1)} years. Linear amplitude multiplies by about ${factor.toFixed(2)} each year until the cubic term, if it is on, levels it off.`;
+    return `Unstable. Period ${diag.periodYears.toFixed(1)} yr. Linear amplitude grows by a factor ${factor.toFixed(2)} each year. −εₙ h_E³ saturates the orbit when εₙ > 0.`;
   }
-  return `Damped cycle, period ${diag.periodYears.toFixed(1)} years. Linear amplitude multiplies by about ${factor.toFixed(2)} each year. Wind or heating noise can keep a faded cycle alive, which is Jin’s subcritical case.`;
+  return `Damped. Period ${diag.periodYears.toFixed(1)} yr. Linear amplitude changes by a factor ${factor.toFixed(2)} each year.`;
 }
 
-export function createSimulation() {
-  const state = {
-    params: cloneParams(PRESETS.neutral.params),
+function makeRun(seed) {
+  return {
+    params: cloneParams(),
     T: 0,
     h: 0,
     icT: 0,
     icH: 0,
+    history: { years: [], tC: [], hM: [] },
+    sinceRecord: 0,
+    diverged: false,
+    seed,
+    randn: boxMuller(mulberry32(seed)),
+  };
+}
+
+export function createSimulation() {
+  const state = {
+    A: makeRun(11),
+    B: makeRun(29),
+    edit: "A",
+    compare: false,
+    params: null,
     years: 0,
     playing: false,
     presetId: "neutral",
     monthsPerSecond: 5,
-    seed: 11,
-    randn: () => 0,
-    diverged: false,
-    history: { years: [], tC: [], hM: [] },
-    sinceRecord: 0,
     phaseRange: { x: [-45, 45], y: [-2.6, 2.6] },
     rangeKey: "",
   };
+  state.params = state.A.params;
 
-  function reseed() {
-    state.randn = boxMuller(mulberry32(state.seed));
+  function edited() {
+    return state.edit === "B" ? state.B : state.A;
   }
 
-  function clearHistory() {
-    state.history = { years: [], tC: [], hM: [] };
-    state.sinceRecord = RECORD_EVERY_YEARS;
-    state.years = 0;
+  function clearHistory(run) {
+    run.history = { years: [], tC: [], hM: [] };
+    run.sinceRecord = RECORD_EVERY_YEARS;
   }
 
-  function record(force) {
-    if (!force && state.sinceRecord < RECORD_EVERY_YEARS) return;
-    state.sinceRecord = 0;
-    const shown = toDisplay(state.T, state.h);
-    state.history.years.push(state.years);
-    state.history.tC.push(shown.tCelsius);
-    state.history.hM.push(shown.hMeters);
-    if (state.history.years.length > 900) {
-      state.history.years.splice(0, 120);
-      state.history.tC.splice(0, 120);
-      state.history.hM.splice(0, 120);
+  function record(run, force) {
+    if (!force && run.sinceRecord < RECORD_EVERY_YEARS) return;
+    run.sinceRecord = 0;
+    const shown = toDisplay(run.T, run.h);
+    run.history.years.push(state.years);
+    run.history.tC.push(shown.tCelsius);
+    run.history.hM.push(shown.hMeters);
+    if (run.history.years.length > 900) {
+      run.history.years.splice(0, 120);
+      run.history.tC.splice(0, 120);
+      run.history.hM.splice(0, 120);
     }
   }
 
@@ -123,11 +127,10 @@ export function createSimulation() {
     if (yNeed > state.phaseRange.y[1]) state.phaseRange.y = [-nice(yNeed), nice(yNeed)];
   }
 
-  function trail() {
-    const diag = diagnose(state.params);
+  function trailOf(run, diag) {
     const span = diag.periodYears ? Math.min(14, Math.max(8, diag.periodYears * 3)) : 10;
     const start = state.years - span;
-    const { years, tC, hM } = state.history;
+    const { years, tC, hM } = run.history;
     let i = 0;
     while (i < years.length && years[i] < start) i += 1;
     return { h: hM.slice(i), t: tC.slice(i) };
@@ -145,42 +148,87 @@ export function createSimulation() {
     return [-nice(peak * 1.15), nice(peak * 1.15)];
   }
 
-  function snapshot() {
-    const shown = toDisplay(state.T, state.h);
-    const diag = diagnose(state.params);
-    const phase = phaseOf(shown.tCelsius, shown.hMeters);
-    const det = tendencies(state.h, state.T, state.params);
-    const hE = det.hE * SCALES.hMeters;
-    const rates = {
-      damping: det.termsT.damping * PER_MONTH_T,
-      tilt: det.termsT.tilt * PER_MONTH_T,
-      zonal: det.termsT.zonal * PER_MONTH_T,
-      ekman: det.termsT.ekman * PER_MONTH_T,
-      thermocline: det.termsT.thermocline * PER_MONTH_T,
-      cubic: det.termsT.cubic * PER_MONTH_T,
-      ndh: det.termsT.ndh * PER_MONTH_T,
-      memory: det.termsH.memory * PER_MONTH_H,
-      sverdrup: det.termsH.sverdrup * PER_MONTH_H,
+  function ratesOf(run) {
+    const det = tendencies(run.h, run.T, run.params);
+    return {
+      det,
+      hE: det.hE * SCALES.hMeters,
+      rates: {
+        damping: det.termsT.damping * PER_MONTH_T,
+        tilt: det.termsT.tilt * PER_MONTH_T,
+        zonal: det.termsT.zonal * PER_MONTH_T,
+        ekman: det.termsT.ekman * PER_MONTH_T,
+        thermocline: det.termsT.thermocline * PER_MONTH_T,
+        cubic: det.termsT.cubic * PER_MONTH_T,
+        ndh: det.termsT.ndh * PER_MONTH_T,
+        memory: det.termsH.memory * PER_MONTH_H,
+        sverdrup: det.termsH.sverdrup * PER_MONTH_H,
+      },
     };
-    const omegaText = diag.omega ? diag.omega.toFixed(3) : "not real";
+  }
+
+  function pack(id, run) {
+    const shown = toDisplay(run.T, run.h);
+    const diag = diagnose(run.params);
+    const { det, hE, rates } = ratesOf(run);
+    return {
+      id,
+      params: { ...run.params },
+      shown,
+      hE,
+      diag,
+      phase: phaseOf(shown.tCelsius, shown.hMeters),
+      trail: trailOf(run, diag),
+      series: {
+        years: run.history.years.slice(),
+        tC: run.history.tC.slice(),
+        hM: run.history.hM.slice(),
+      },
+      rates,
+      det,
+      diverged: run.diverged,
+      ic: toDisplay(run.icT, run.icH),
+    };
+  }
+
+  function restartAtInitial() {
+    for (const run of [state.A, state.B]) {
+      run.T = run.icT;
+      run.h = run.icH;
+      run.diverged = false;
+      run.randn = boxMuller(mulberry32(run.seed));
+      clearHistory(run);
+    }
+    state.years = 0;
+    record(state.A, true);
+    if (state.compare) record(state.B, true);
+    const shown = toDisplay(edited().T, edited().h);
+    const other = state.compare ? toDisplay(state.B.T, state.B.h) : shown;
+    expandRange(
+      Math.max(Math.abs(shown.hMeters), Math.abs(other.hMeters)),
+      Math.max(Math.abs(shown.tCelsius), Math.abs(other.tCelsius)),
+      true,
+    );
+  }
+
+  function snapshot() {
+    const active = pack(state.edit, edited());
+    const runA = state.edit === "A" ? active : pack("A", state.A);
+    const runB = state.compare ? pack("B", state.B) : null;
+    const bothT = runA.series.tC.concat(runB ? runB.series.tC : []);
+    const bothH = runA.series.hM.concat(runB ? runB.series.hM : []);
+    const diag = active.diag;
+    const omegaText = diag.omega ? diag.omega.toFixed(3) : "—";
     const numbers =
-      `With these sliders: R = ${fmt(diag.R, 3)}, b = ${fmt(diag.b, 3)}, ` +
-      `h_E = ${fmt(hE, 1)} m, σ = ${fmt(diag.growth, 3)} per 2 months ` +
-      `(${signed(diag.growthPerYear, 2)} /yr), ω = ${omegaText}.` +
+      `R = ${fmt(diag.R, 3)}, b = ${fmt(diag.b, 3)}, h_E = ${fmt(active.hE, 1)} m. ` +
+      `σ = ${fmt(diag.growth, 3)} per 2 months (${signed(diag.growthPerYear, 2)} /yr). ω = ${omegaText}.` +
       (diag.jinLagMonths
-        ? ` Jin’s lag η = ${diag.jinLagMonths.toFixed(1)} months: h_W is opposite the SST of that long ago.`
+        ? ` η = ${diag.jinLagMonths.toFixed(1)} months, with h_W ∝ −T_E(t − η).`
         : "");
-    const dTmonth = det.dT * PER_MONTH_T;
-    const dhMonth = det.dh * PER_MONTH_H;
-    const east = dTmonth >= 0
-      ? `The east is warming at ${dTmonth.toFixed(2)} °C per month.`
-      : `The east is cooling at ${Math.abs(dTmonth).toFixed(2)} °C per month.`;
-    const west = dhMonth >= 0
-      ? `The west is deepening at ${dhMonth.toFixed(1)} m per month, so recharge is winning.`
-      : `The west is shoaling at ${Math.abs(dhMonth).toFixed(1)} m per month, so discharge is winning.`;
-    const noise = state.params.sig1 > 0 || state.params.sig2 > 0
-      ? " Noise is on, so these bars are the smooth part of eq. 3.4."
-      : "";
+    const dTmonth = active.det.dT * PER_MONTH_T;
+    const dhMonth = active.det.dh * PER_MONTH_H;
+    const tendency = `∂T_E/∂t = ${signed(dTmonth, 2)} °C month⁻¹. ∂h_W/∂t = ${signed(dhMonth, 1)} m month⁻¹.` +
+      ((edited().params.sig1 > 0 || edited().params.sig2 > 0) ? " Rates omit ξ₁ and ξ₂." : "");
     const rangeKey = `${state.phaseRange.x[1]}:${state.phaseRange.y[1]}`;
     const rangeChanged = rangeKey !== state.rangeKey;
     state.rangeKey = rangeKey;
@@ -188,27 +236,31 @@ export function createSimulation() {
       years: state.years,
       playing: state.playing,
       presetId: state.presetId,
-      diverged: state.diverged,
+      edit: state.edit,
+      compare: state.compare,
+      diverged: active.diverged,
       monthsPerSecond: state.monthsPerSecond,
-      params: { ...state.params },
-      ic: toDisplay(state.icT, state.icH),
-      shown,
-      hE,
+      params: active.params,
+      ic: active.ic,
+      shown: active.shown,
+      hE: active.hE,
       diag,
-      phase,
-      rates,
-      det,
+      phase: active.phase,
+      rates: active.rates,
+      det: active.det,
       numbers,
       regime: regimeSentence(diag),
-      tendency: `${east} ${west}${noise}`,
-      trail: trail(),
+      tendency,
+      trail: active.trail,
+      runA,
+      runB,
       series: {
-        years: state.history.years.slice(),
-        tC: state.history.tC.slice(),
-        hM: state.history.hM.slice(),
+        years: runA.series.years,
+        tC: runA.series.tC,
+        hM: runA.series.hM,
         window: seriesWindow(),
-        tRange: paddedRange(state.history.tC, 2.2),
-        hRange: paddedRange(state.history.hM, 30),
+        tRange: paddedRange(bothT, 2.2),
+        hRange: paddedRange(bothH, 30),
       },
       phaseRange: { x: [...state.phaseRange.x], y: [...state.phaseRange.y] },
       rangeChanged,
@@ -220,78 +272,149 @@ export function createSimulation() {
       Math.min(4, Math.max(-4, tCelsius)),
       Math.min(80, Math.max(-80, hMeters)),
     );
-    state.T = nd.T;
-    state.h = nd.h;
+    const run = edited();
+    run.T = nd.T;
+    run.h = nd.h;
     if (remember) {
-      state.icT = nd.T;
-      state.icH = nd.h;
+      run.icT = nd.T;
+      run.icH = nd.h;
     }
-    state.diverged = false;
-    clearHistory();
-    record(true);
-    expandRange(nd.T * SCALES.tCelsius, nd.h * SCALES.hMeters, true);
+    restartAtInitial();
+    run.T = nd.T;
+    run.h = nd.h;
+    if (remember) {
+      run.icT = nd.T;
+      run.icH = nd.h;
+    }
+    clearHistory(state.A);
+    clearHistory(state.B);
+    state.years = 0;
+    record(state.A, true);
+    if (state.compare) record(state.B, true);
   }
 
   function applyPreset(preset) {
-    state.params = cloneParams(preset.params);
+    const run = edited();
+    run.params = cloneParams(preset.params);
+    state.params = run.params;
     state.presetId = preset.id;
     state.playing = true;
-    reseed();
     const nd = toNondim(preset.tCelsius, preset.hMeters);
-    state.icT = nd.T;
-    state.icH = nd.h;
-    state.T = nd.T;
-    state.h = nd.h;
-    state.diverged = false;
-    clearHistory();
-    record(true);
-    expandRange(preset.hMeters, preset.tCelsius, true);
+    run.icT = nd.T;
+    run.icH = nd.h;
+    run.T = nd.T;
+    run.h = nd.h;
+    run.seed += 1;
+    restartAtInitial();
   }
 
   function reset() {
-    state.T = state.icT;
-    state.h = state.icH;
-    state.diverged = false;
-    reseed();
-    clearHistory();
-    record(true);
-    const shown = toDisplay(state.T, state.h);
-    expandRange(shown.hMeters, shown.tCelsius, true);
+    state.playing = state.playing;
+    restartAtInitial();
   }
 
   function setParam(key, value) {
-    state.params[key] = value;
+    edited().params[key] = value;
+    state.params = edited().params;
     state.presetId = "";
+  }
+
+  function selectRun(id) {
+    if (id === "B" && !state.compare) return;
+    state.edit = id === "B" ? "B" : "A";
+    state.params = edited().params;
+    state.presetId = "";
+  }
+
+  function duplicate() {
+    const source = state.A;
+    state.B.params = cloneParams(source.params);
+    state.B.T = source.T;
+    state.B.h = source.h;
+    state.B.icT = source.icT;
+    state.B.icH = source.icH;
+    state.B.history = {
+      years: source.history.years.slice(),
+      tC: source.history.tC.slice(),
+      hM: source.history.hM.slice(),
+    };
+    state.B.sinceRecord = source.sinceRecord;
+    state.B.diverged = source.diverged;
+    state.B.seed = source.seed + 17;
+    state.B.randn = boxMuller(mulberry32(state.B.seed));
+    state.compare = true;
+    state.edit = "B";
+    state.params = state.B.params;
+    state.presetId = "";
+  }
+
+  function dropCompare() {
+    state.compare = false;
+    state.edit = "A";
+    state.params = state.A.params;
   }
 
   function setSpeed(value) {
     state.monthsPerSecond = value;
   }
 
+  function advanceRun(run, slice) {
+    if (run.diverged) return;
+    const next = step(run.h, run.T, run.params, slice * TIME_UNITS_PER_YEAR, run.randn);
+    run.h = next.h;
+    run.T = next.T;
+    run.sinceRecord += slice;
+    if (!Number.isFinite(run.T) || Math.abs(run.T) > LIMIT || Math.abs(run.h) > LIMIT) {
+      run.diverged = true;
+    }
+  }
+
   function advance(wallSeconds) {
-    if (!state.playing || state.diverged) return;
+    if (!state.playing) return;
+    const active = [state.A];
+    if (state.compare) active.push(state.B);
+    if (active.every((run) => run.diverged)) {
+      state.playing = false;
+      return;
+    }
     let yearsLeft = Math.min(0.45, wallSeconds * (state.monthsPerSecond / 12));
     while (yearsLeft > 1e-8) {
       const slice = Math.min(SUBSTEP_YEARS, yearsLeft);
-      const next = step(state.h, state.T, state.params, slice * TIME_UNITS_PER_YEAR, state.randn);
-      state.h = next.h;
-      state.T = next.T;
+      advanceRun(state.A, slice);
+      if (state.compare) advanceRun(state.B, slice);
       state.years += slice;
-      state.sinceRecord += slice;
       yearsLeft -= slice;
-      if (!Number.isFinite(state.T) || Math.abs(state.T) > LIMIT || Math.abs(state.h) > LIMIT) {
-        state.diverged = true;
+      if (active.every((run) => run.diverged)) {
         state.playing = false;
         break;
       }
     }
-    record(false);
-    const shown = toDisplay(state.T, state.h);
-    expandRange(shown.hMeters, shown.tCelsius, false);
+    record(state.A, false);
+    if (state.compare) record(state.B, false);
+    const shownA = toDisplay(state.A.T, state.A.h);
+    expandRange(shownA.hMeters, shownA.tCelsius, false);
+    if (state.compare) {
+      const shownB = toDisplay(state.B.T, state.B.h);
+      expandRange(shownB.hMeters, shownB.tCelsius, false);
+    }
   }
 
-  reseed();
-  applyPreset(PRESETS.neutral);
+  function applyInitial(preset) {
+    state.edit = "A";
+    state.compare = false;
+    state.A.params = cloneParams(preset.params);
+    state.params = state.A.params;
+    state.presetId = preset.id;
+    state.playing = true;
+    const nd = toNondim(preset.tCelsius, preset.hMeters);
+    state.A.icT = nd.T;
+    state.A.icH = nd.h;
+    state.A.T = nd.T;
+    state.A.h = nd.h;
+    restartAtInitial();
+  }
+
+  applyInitial(PRESETS.neutral);
   return {
     state,
     snapshot,
@@ -300,9 +423,13 @@ export function createSimulation() {
     reset,
     setParam,
     setSpeed,
+    selectRun,
+    duplicate,
+    dropCompare,
     advance,
     play() {
-      if (!state.diverged) state.playing = true;
+      const runs = state.compare ? [state.A, state.B] : [state.A];
+      if (runs.some((run) => !run.diverged)) state.playing = true;
     },
     pause() {
       state.playing = false;

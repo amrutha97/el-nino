@@ -85,11 +85,11 @@ export function Equations({
       <p>{tendency}</p>
       <h3 className="pt-1 text-sm font-semibold">Bjerknes index</h3>
       <p className="text-xs text-muted-foreground">
-        Jin, Kim and Bejarano (2006) define this index as the growth rate. Here that is σ = {growthPerYear >= 0 ? "+" : "−"}{Math.abs(growthPerYear).toFixed(2)} /yr.
-        Their equation (9) splits the SST coefficient into the four bars. They sum to R, and σ = (R − r) / 2.
+        Jin, Kim, and Bejarano (2006) identify the Bjerknes index with the growth rate. σ = {growthPerYear >= 0 ? "+" : "−"}{Math.abs(growthPerYear).toFixed(2)} /yr.
+        The four contributions sum to R, and σ = (R − r) / 2.
         {flavor === "warm-pool"
-          ? " Zonal advection is larger than the thermocline feedback, which is the warm-pool El Niño of Kug, Jin and An (2009)."
-          : " The thermocline feedback is the larger of the two, which is the cold-tongue El Niño in that paper, and the whole of Jin’s 1997 model when ζ and κ are zero."}
+          ? " ζb > γb: warm-pool SST, Kug, Jin, and An (2009)."
+          : " γb ≥ ζb: cold-tongue SST."}
       </p>
       <div className="space-y-2">
         {bj.map((item) => {
@@ -117,9 +117,7 @@ export function Equations({
         })}
       </div>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        ζ = κ = ν = 0 is Jin (1997), Part I, equations (2.6), (3.1), and (3.4), including the dropped Ekman term.
-        ν T² is a schematic of the nonlinear dynamical heating in An and Jin (2004), not a formula they write down.
-        There is no seasonal cycle.
+        ζ = κ = ν = 0 recovers Jin (1997), (2.6), (3.1), and (3.4). κ is the Ekman contribution in the Bjerknes index. ν T_E² has the sign of the nonlinear dynamical heating in An and Jin (2004).
       </p>
     </div>
   );
