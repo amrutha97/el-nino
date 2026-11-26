@@ -9,9 +9,9 @@
 import * as THREE from "three";
 
 const VIEWS = {
-  pacific: { lat: 6, lon: -150, dist: 2.05 },
-  equator: { lat: 22, lon: -145, dist: 1.48 },
-  globe: { lat: 10, lon: -155, dist: 3.15 },
+  pacific: { lat: 6, lon: -150, dist: 2.05, aimY: -0.32 },
+  equator: { lat: 22, lon: -145, dist: 1.48, aimY: 0 },
+  globe: { lat: 10, lon: -155, dist: 3.15, aimY: -0.08 },
 };
 
 const WIND_LONS = [152, 168, 184, 200, 216];
@@ -94,7 +94,7 @@ export async function mountPacific(canvas) {
     const pos = latLon(view.lat, view.lon, view.dist);
     camera.position.copy(pos);
     camera.up.set(0, 1, 0);
-    camera.lookAt(0, 0, 0);
+    camera.lookAt(0, view.aimY, 0);
     sun.position.copy(latLon(view.lat + 18, view.lon - 30, 4));
     fill.position.copy(latLon(view.lat - 10, view.lon + 50, 3));
   }
@@ -118,6 +118,7 @@ export async function mountPacific(canvas) {
     if (dLon < -180) dLon += 360;
     view.lon += dLon * 0.12;
     view.dist += (target.dist - view.dist) * 0.12;
+    view.aimY += (target.aimY - view.aimY) * 0.12;
     applyCamera();
     placeLabels();
     renderer.render(scene, camera);
@@ -191,6 +192,7 @@ export async function mountPacific(canvas) {
     target.lat = next.lat;
     target.lon = next.lon;
     target.dist = next.dist;
+    target.aimY = next.aimY;
   }
 
   const observer = new ResizeObserver(() => resize());

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { Copy, Download, FileJson, Pause, Play, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { PRESETS, SCALES } from "../js/model.js";
 import { parameterJson, seriesCsv } from "../js/export.js";
 import { createSimulation } from "@/sim/simulation.js";
@@ -11,6 +11,7 @@ import { Equations } from "@/components/equations";
 import { SweepFigure } from "@/components/sweep-figure";
 import { SeriesFigure } from "@/components/series-figure";
 import { Controls } from "@/components/controls";
+import { Icon } from "@/components/icon";
 
 type Sim = ReturnType<typeof createSimulation>;
 type Snap = ReturnType<Sim["snapshot"]>;
@@ -81,24 +82,19 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28 text-foreground">
-      <header className="mx-auto max-w-6xl px-4 pb-2 pt-6">
-        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Equatorial Pacific</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Recharge oscillator</h1>
+    <div className="app-shell min-h-svh bg-background text-foreground">
+      <header className="app-header">
+        <p className="text-sm font-medium tracking-tight text-muted-foreground">Recharge oscillator</p>
       </header>
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-4 px-4">
-        <section className="status-block">
-          <h2 id="phase-title" className="text-3xl font-semibold tracking-tight">{snap.phase.title}</h2>
-          <p id="globe-caption" className="mt-1 text-sm text-muted-foreground">{snap.phase.line}</p>
-        </section>
-
+      <main className="app-main">
         <Journey
           tCelsius={shown.tCelsius}
           hWest={shown.hMeters}
           hEast={snap.hE}
           zonalShare={diag.zonalShare}
           phaseTitle={snap.compare ? `${snap.edit} · ${snap.phase.title}` : snap.phase.title}
+          phaseLine={snap.phase.line}
           beatId={snap.phase.id}
           phaseRange={snap.phaseRange}
           trailA={snap.runA.trail}
@@ -110,10 +106,11 @@ export default function App() {
           <Button
             id="coefficients"
             type="button"
-            variant={tools ? "default" : "outline"}
+            variant="outline"
             aria-expanded={tools}
             onClick={() => setTools((open) => !open)}
           >
+            <Icon icon={SlidersHorizontal} />
             Coefficients
           </Button>
         </div>
@@ -180,10 +177,12 @@ export default function App() {
               Run B
             </Button>
             <Button id="duplicate" type="button" variant="outline" onClick={() => { sim.current.duplicate(); publish(); }}>
+              <Icon icon={Copy} />
               Copy A to B
             </Button>
             {snap.compare && (
               <Button id="drop-b" type="button" variant="outline" onClick={() => { sim.current.dropCompare(); publish(); }}>
+                <Icon icon={X} />
                 Drop B
               </Button>
             )}
@@ -193,6 +192,7 @@ export default function App() {
               variant="outline"
               onClick={() => download("recharge-oscillator.csv", seriesCsv(exportRuns()), "text/csv")}
             >
+              <Icon icon={Download} />
               CSV
             </Button>
             <Button
@@ -215,6 +215,7 @@ export default function App() {
                 },
               }), "application/json")}
             >
+              <Icon icon={FileJson} />
               JSON
             </Button>
           </CardContent>
@@ -295,7 +296,7 @@ export default function App() {
         </>
         )}
 
-        <footer className="space-y-2 pb-4 text-sm leading-relaxed text-muted-foreground">
+        <footer className="space-y-2 text-xs leading-relaxed text-muted-foreground">
           <p>
             Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: Conceptual model.{" "}
             <cite>Journal of the Atmospheric Sciences</cite>, 54(7), 811–829.{" "}
@@ -323,16 +324,16 @@ export default function App() {
         </footer>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-3 py-2 backdrop-blur" style={{ paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))" }}>
+      <div className="playbar">
         <div className="mx-auto flex max-w-6xl items-center gap-2">
-          <Button id="play" type="button" className="flex-1" aria-pressed={snap.playing} onClick={() => { sim.current.play(); publish(); }}>
-            <Play className="h-4 w-4" /> Play
+          <Button id="play" type="button" variant="outline" className="flex-1" aria-pressed={snap.playing} onClick={() => { sim.current.play(); publish(); }}>
+            <Icon icon={Play} /> Play
           </Button>
           <Button id="pause" type="button" variant="outline" className="flex-1" aria-pressed={!snap.playing} onClick={() => { sim.current.pause(); publish(); }}>
-            <Pause className="h-4 w-4" /> Pause
+            <Icon icon={Pause} /> Pause
           </Button>
           <Button id="reset" type="button" variant="outline" className="flex-1" onClick={() => { sim.current.reset(); publish(); }}>
-            <RotateCcw className="h-4 w-4" /> Reset
+            <Icon icon={RotateCcw} /> Reset
           </Button>
           <p id="year" className="m-0 shrink-0 whitespace-nowrap text-right font-mono text-sm tabular-nums">Year {snap.years.toFixed(1)}</p>
         </div>

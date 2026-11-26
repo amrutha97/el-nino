@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/icon";
 import { useFullscreen } from "@/components/use-fullscreen";
 
 type EarthApi = {
@@ -30,6 +32,7 @@ export function Journey({
   hEast,
   zonalShare,
   phaseTitle,
+  phaseLine,
   beatId,
   phaseRange,
   trailA,
@@ -41,6 +44,7 @@ export function Journey({
   hEast: number;
   zonalShare: number;
   phaseTitle: string;
+  phaseLine: string;
   beatId: string;
   phaseRange: { x: number[]; y: number[] };
   trailA: Trail;
@@ -133,8 +137,8 @@ export function Journey({
   const sign = (value: number, digits: number) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toFixed(digits)}`;
 
   return (
-    <div>
-      <div className="globe-views mb-3">
+    <div className="flex flex-col gap-3">
+      <div className="globe-views">
         {(["pacific", "equator", "globe"] as const).map((item) => (
           <Button
             key={item}
@@ -158,34 +162,41 @@ export function Journey({
             ref={earthCanvas}
             aria-label="Equatorial Pacific. Eastern SST and the western warm pool."
           />
-        <p className="pin" data-pin="pool">Warm pool</p>
-        <p className="pin" data-pin="tongue">Cold tongue</p>
-        <p className="scene-readout">
-          <span className="font-medium">{phaseTitle}</span>
-          <span className="font-mono"> T_E {sign(tCelsius, 2)} °C</span>
-          <span className="font-mono"> h_W {sign(hWest, 0)} m</span>
-        </p>
-        {fullscreen.active ? (
-          <Button id="scene-close" type="button" className="scene-close" onClick={fullscreen.exit}>Close</Button>
-        ) : (
-          <Button id="fullscreen" type="button" variant="outline" className="scene-close" onClick={fullscreen.enter}>Full screen</Button>
-        )}
-        <p id="globe-fallback" hidden className="absolute inset-0 grid place-items-center bg-neutral-950/80 p-6 text-center text-sm text-white">
-          WebGL is unavailable.
-        </p>
-      </div>
-      <div className="scene-stage globe-stage on-light">
-        <canvas
-          id="orbit"
-          ref={orbitCanvas}
-          aria-label="Orbit of western thermocline depth and eastern SST."
-        />
-        {BEATS.map((beat) => (
-          <p key={beat.id} className={`cycle-label ${beat.className} ${beatId === beat.id ? "is-current" : ""}`}>
-            {beat.label}
+          <p className="pin" data-pin="pool">Warm pool</p>
+          <p className="pin" data-pin="tongue">Cold tongue</p>
+          <div className="earth-label">
+            <p id="phase-title">{phaseTitle}</p>
+            <p id="globe-caption">{phaseLine}</p>
+            <p className="earth-numbers">
+              T_E {sign(tCelsius, 2)} °C
+              <span>h_W {sign(hWest, 0)} m</span>
+            </p>
+          </div>
+          {fullscreen.active ? (
+            <Button id="scene-close" type="button" variant="outline" className="scene-close" aria-label="Close" onClick={fullscreen.exit}>
+              <Icon icon={Minimize2} />
+            </Button>
+          ) : (
+            <Button id="fullscreen" type="button" variant="outline" className="scene-close" aria-label="Full screen" onClick={fullscreen.enter}>
+              <Icon icon={Maximize2} />
+            </Button>
+          )}
+          <p id="globe-fallback" hidden className="absolute inset-0 grid place-items-center bg-neutral-950/80 p-6 text-center text-sm text-white">
+            WebGL is unavailable.
           </p>
-        ))}
-      </div>
+        </div>
+        <div className="scene-stage globe-stage on-light">
+          <canvas
+            id="orbit"
+            ref={orbitCanvas}
+            aria-label="Orbit of western thermocline depth and eastern SST."
+          />
+          {BEATS.map((beat) => (
+            <p key={beat.id} className={`cycle-label ${beat.className} ${beatId === beat.id ? "is-current" : ""}`}>
+              {beat.label}
+            </p>
+          ))}
+        </div>
       </div>
     </div>
   );

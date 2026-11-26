@@ -8,10 +8,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        outline: "border border-input bg-background hover:bg-accent",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80",
+        outline: "border border-input bg-background hover:bg-accent active:bg-accent",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70",
+        ghost: "hover:bg-accent active:bg-accent",
       },
     },
     defaultVariants: { variant: "default" },
