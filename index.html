@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071416">
+  <meta name="description" content="A playable simulator of Fei-Fei Jin’s 1997 recharge oscillator for El Niño.">
+  <title>Recharge oscillator · Jin 1997</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="top">
+    <p class="kicker">Equatorial Pacific · two equations</p>
+    <h1>Recharge oscillator</h1>
+    <p class="dek">
+      El Niño, in the model Fei-Fei Jin wrote down in 1997. A deep western thermocline is stored heat.
+      It warms the eastern Pacific. That warmth drives westerly winds, and those winds drain the heat
+      off the equator. The drained ocean is what turns El Niño into La Niña. La Niña’s stronger trades
+      pile the heat back up, and the cycle starts again.
+    </p>
+  </header>
+
+  <main id="app">
+    <section class="status" aria-live="polite">
+      <div>
+        <p class="phase" id="phase-title">Recharged</p>
+        <p class="phase-line" id="phase-line"></p>
+      </div>
+      <dl class="stats">
+        <div>
+          <dt>Period</dt>
+          <dd id="stat-period">—</dd>
+        </div>
+        <div>
+          <dt>Growth σ</dt>
+          <dd id="stat-growth">—</dd>
+        </div>
+        <div>
+          <dt>Heat leads</dt>
+          <dd id="stat-lead">—</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="card presets-card">
+      <h2>Start from a preset</h2>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <p class="banner" id="banner" hidden></p>
+
+    <div class="board">
+      <section class="card phase-card">
+        <h2>Phase portrait</h2>
+        <p class="now" id="now-state"></p>
+        <div id="phase" class="plot plot-phase" role="img" aria-label="Phase portrait of western thermocline against eastern Pacific temperature. Drag to set the starting state."></div>
+        <p class="caption">Drag the dot to set the start. Right is recharged heat, left is discharged. Up is a warm eastern Pacific, down is a cold one. Jin’s cycle runs clockwise.</p>
+      </section>
+
+      <section class="card math-card">
+        <h2>Jin’s equations</h2>
+        <p class="eq"><span>dT<sub>E</sub>/dt</span> = R T<sub>E</sub> + γ h<sub>W</sub> − ε<sub>n</sub> (h<sub>W</sub> + b T<sub>E</sub>)<sup>3</sup> + γ ξ<sub>1</sub> + ξ<sub>2</sub></p>
+        <p class="eq"><span>dh<sub>W</sub>/dt</span> = −r h<sub>W</sub> − α b T<sub>E</sub> − α ξ<sub>1</sub></p>
+        <p class="eq"><span>R</span> = γ b − c, &nbsp; <span>b</span> = b<sub>0</sub> μ, &nbsp; <span>h<sub>E</sub></span> = h<sub>W</sub> + b T<sub>E</sub></p>
+        <p class="eq"><span>σ</span> = (R − r) / 2, &nbsp; <span>ω</span> = √[α b γ − (R + r)<sup>2</sup> / 4]</p>
+        <p class="numbers" id="numbers"></p>
+        <p class="regime" id="regime"></p>
+        <h3>What each term is doing now</h3>
+        <div id="terms"></div>
+        <p class="tendency" id="tendency"></p>
+        <p class="fine">
+          This is Jin’s conceptual model only (Journal of the Atmospheric Sciences, 1997, Part I, eqs. 2.6, 3.1, and 3.4).
+          Wind, upwelling, and the Bjerknes feedback are inside the coefficients. The small Ekman term δ<sub>s</sub>b′ is left out, as Jin does after eq. 2.6.
+          There is no seasonal cycle and no extra warm-cold asymmetry beyond the cubic thermocline term.
+          States are integrated in his nondimensional units and shown in °C, meters, and years.
+        </p>
+      </section>
+
+      <section class="card series-card">
+        <h2>Eastern temperature and western heat</h2>
+        <div id="series" class="plot plot-series" role="img" aria-label="Time series of eastern Pacific sea surface temperature anomaly and western Pacific thermocline anomaly."></div>
+        <p class="caption">Coral is the eastern Pacific temperature anomaly T<sub>E</sub>. Gold is the western thermocline anomaly h<sub>W</sub>, the recharge. Heat peaks before the warm event.</p>
+      </section>
+
+      <section class="card basin-card">
+        <h2>Recharge versus discharge</h2>
+        <p class="caption" id="basin-caption"></p>
+        <svg id="ocean" viewBox="0 0 640 280" role="img" aria-labelledby="basin-caption">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#16383d"/>
+              <stop offset="100%" stop-color="#0d2226"/>
+            </linearGradient>
+            <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+              <stop id="water-top" offset="0%" stop-color="#8fd0d4"/>
+              <stop id="water-bot" offset="72%" stop-color="#0c3a44"/>
+            </linearGradient>
+            <marker id="wind-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M 0 1.2 L 9 5 L 0 8.8 Z" fill="#f4e2c0"/>
+            </marker>
+            <clipPath id="basin-clip">
+              <rect x="36" y="86" width="568" height="168" rx="18"/>
+            </clipPath>
+          </defs>
+          <rect x="0" y="0" width="640" height="280" fill="url(#sky)"/>
+          <text class="svg-label" x="48" y="28">West · warm pool</text>
+          <text class="svg-label" x="592" y="28" text-anchor="end">East · cold tongue</text>
+          <line id="wind-line" x1="230" y1="52" x2="410" y2="52" stroke="#f4e2c0" stroke-width="2.5" marker-end="url(#wind-head)"/>
+          <text id="wind-text" class="svg-note" x="320" y="74" text-anchor="middle"></text>
+          <g clip-path="url(#basin-clip)">
+            <rect x="36" y="86" width="568" height="168" fill="url(#water)"/>
+            <path id="warm-layer" fill="rgba(240,180,90,0.28)"/>
+            <path id="thermo" fill="none" stroke="#f0b45a" stroke-width="3.5" stroke-linecap="round"/>
+            <line x1="36" y1="176" x2="604" y2="176" stroke="rgba(231,240,234,0.35)" stroke-dasharray="5 7"/>
+          </g>
+          <text id="hw-tag" class="svg-tag" x="52" y="168"></text>
+          <text id="he-tag" class="svg-tag" x="588" y="168" text-anchor="end"></text>
+        </svg>
+        <div class="flux">
+          <p id="flux-label"></p>
+          <div class="equator" id="equator" aria-hidden="true">
+            <span class="chev up"></span>
+            <span class="chev up"></span>
+            <span class="band">equator</span>
+            <span class="chev down"></span>
+            <span class="chev down"></span>
+          </div>
+        </div>
+        <div class="meter">
+          <span>Discharged</span>
+          <div class="track"><div class="thumb" id="heat-thumb"></div></div>
+          <span>Recharged</span>
+        </div>
+        <p class="caption" id="heat-readout"></p>
+      </section>
+    </div>
+
+    <section class="card controls-card">
+      <h2>Coefficients</h2>
+      <p class="caption">Every slider is one of Jin’s coefficients, except playback speed. The sentence under each one says what it changes. Moving a coefficient changes the running state; Reset starts that experiment over.</p>
+      <div id="controls"></div>
+    </section>
+
+    <footer class="cite">
+      <p>
+        Implemented from Jin, F.-F. (1997). An equatorial ocean recharge paradigm for ENSO. Part I: Conceptual model.
+        <cite>Journal of the Atmospheric Sciences</cite>, 54(7), 811–829.
+        <a href="https://doi.org/10.1175/1520-0469(1997)054%3C0811:AEORPF%3E2.0.CO;2">doi:10.1175/1520-0469(1997)054&lt;0811:AEORPF&gt;2.0.CO;2</a>.
+        Part II derives this same oscillator from a stripped-down coupled model.
+      </p>
+    </footer>
+  </main>
+
+  <div class="transport">
+    <div class="transport-inner">
+      <button type="button" id="play" class="primary">Play</button>
+      <button type="button" id="pause">Pause</button>
+      <button type="button" id="reset">Reset</button>
+      <p class="year" id="year">Year 0.0</p>
+    </div>
+  </div>
+
+  <p class="fatal" id="fatal" hidden>The charts could not be created. Reload the page from the same folder as this file.</p>
+  <script src="vendor/plotly-basic.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
