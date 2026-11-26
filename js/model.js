@@ -382,8 +382,38 @@ export function phaseOf(tCelsius, hMeters) {
   return {
     id: "discharged",
     title: "Discharged",
-      line: "T_E ≈ 0 and h_W < 0. Discharge leads the cold event.",
+    line: "T_E ≈ 0 and h_W < 0. Discharge leads the cold event.",
   };
+}
+
+/**
+ * The six beats of the neutral cycle, in order: recharged west, eastern
+ * warming, peak El Niño, discharge, La Niña, recharge. Thresholds follow
+ * the Fig. 3 orbit (|T| about 1.5°C, |h| about 15 m). They do not enter the ODE.
+ */
+export function beatOf(tCelsius, hMeters) {
+  if (tCelsius >= 1.2) {
+    return { id: "elnino", title: "El Niño", line: "Peak eastern SST." };
+  }
+  if (tCelsius > 0.4 && hMeters > -8) {
+    return { id: "warming", title: "Warming", line: "The east is warming." };
+  }
+  if (hMeters >= 6 && tCelsius <= 0.4 && tCelsius > -0.55) {
+    return { id: "recharged", title: "Recharged", line: "The western Pacific holds the warm water." };
+  }
+  if (tCelsius <= -0.85 && hMeters < 8) {
+    return { id: "lanina", title: "La Niña", line: "The east is cold." };
+  }
+  if (hMeters > 2 && tCelsius < -0.15) {
+    return { id: "recharge", title: "Recharge", line: "The west is filling again." };
+  }
+  if (hMeters < 2 && tCelsius < 1.2) {
+    return { id: "discharged", title: "Discharge", line: "Warm water is draining off the equator." };
+  }
+  if (hMeters >= 0) {
+    return { id: "recharged", title: "Recharged", line: "The western Pacific holds the warm water." };
+  }
+  return { id: "discharged", title: "Discharge", line: "Warm water is draining off the equator." };
 }
 
 export function boxMuller(rng) {

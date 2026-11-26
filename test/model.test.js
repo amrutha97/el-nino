@@ -5,6 +5,7 @@ import {
   PRESETS,
   SCALES,
   TIME_UNITS_PER_YEAR,
+  beatOf,
   boxMuller,
   diagnose,
   eulerMaruyamaStep,
@@ -14,6 +15,7 @@ import {
   mulberry32,
   phaseOf,
   rk4Step,
+  step,
   tendencies,
   tiltMetersPerCelsius,
   toDisplay,
@@ -163,6 +165,25 @@ test("phase labels follow the recharge cycle, not a new rule in the ODE", () => 
   assert.equal(phaseOf(-1.2, 5).id, "lanina");
   assert.equal(phaseOf(0, 20).id, "recharged");
   assert.equal(phaseOf(0, -20).id, "discharged");
+});
+
+test("the neutral orbit names recharged, warming, El Niño, discharge, La Niña, recharge", () => {
+  const p = { ...JIN_DEFAULTS, mu: MC, eps: 0, sig1: 0, sig2: 0 };
+  let { h, T } = toNondim(-0.4, 14);
+  const names = [];
+  let previous = "";
+  const period = diagnose(p).periodYears;
+  for (let y = 0; y <= period + 0.05; y += 0.02) {
+    const shown = toDisplay(T, h);
+    const name = beatOf(shown.tCelsius, shown.hMeters).title;
+    if (name !== previous) {
+      names.push(name);
+      previous = name;
+    }
+    ({ h, T } = step(h, T, p, 0.02 * TIME_UNITS_PER_YEAR, () => 0));
+  }
+  assert.deepEqual(names.slice(0, 6), ["Recharged", "Warming", "El Niño", "Discharge", "La Niña", "Recharge"]);
+  assert.equal(names[6], "Recharged");
 });
 
 test("ζ = κ = ν = 0 leaves the 1997 growth rate and tendencies", () => {

@@ -5,10 +5,11 @@ import { parameterJson, seriesCsv } from "../js/export.js";
 import { createSimulation } from "@/sim/simulation.js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { SceneCard } from "@/components/scene-card";
+import { Journey } from "@/components/journey";
+import { SectionFigure } from "@/components/section-figure";
 import { Equations } from "@/components/equations";
 import { SweepFigure } from "@/components/sweep-figure";
+import { SeriesFigure } from "@/components/series-figure";
 import { Controls } from "@/components/controls";
 
 type Sim = ReturnType<typeof createSimulation>;
@@ -64,6 +65,7 @@ export default function App() {
     publish();
   }, [publish]);
 
+  const [tools, setTools] = useState(false);
   const shown = snap.shown;
   const diag = snap.diag;
   const stat = (id: string, label: string, value: string) => (
@@ -82,45 +84,56 @@ export default function App() {
     <div className="min-h-screen bg-background pb-28 text-foreground">
       <header className="mx-auto max-w-6xl px-4 pb-2 pt-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Equatorial Pacific</p>
-        <div className="mt-2">
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Recharge oscillator</h1>
-          <p className="intro-copy mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Eastern SST anomaly T_E and western thermocline anomaly h_W. Positive h_W is recharge of equatorial warm water. Jin (1997).
-          </p>
-        </div>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Recharge oscillator</h1>
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-4 px-4">
-        <SceneCard
+        <section className="status-block">
+          <h2 id="phase-title" className="text-3xl font-semibold tracking-tight">{snap.phase.title}</h2>
+          <p id="globe-caption" className="mt-1 text-sm text-muted-foreground">{snap.phase.line}</p>
+        </section>
+
+        <Journey
           tCelsius={shown.tCelsius}
           hWest={shown.hMeters}
           hEast={snap.hE}
           zonalShare={diag.zonalShare}
           phaseTitle={snap.compare ? `${snap.edit} · ${snap.phase.title}` : snap.phase.title}
+          beatId={snap.phase.id}
           phaseRange={snap.phaseRange}
           trailA={snap.runA.trail}
           trailB={snap.runB ? snap.runB.trail : null}
-          seriesA={snap.runA.series}
-          seriesB={snap.runB ? snap.runB.series : null}
-          windowYears={snap.series.window}
           onDrag={onDrag}
         />
 
-        <section className="status-block grid gap-3 sm:grid-cols-[1.4fr_1fr] sm:items-end">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 id="phase-title" className="text-2xl font-semibold tracking-tight">{snap.phase.title}</h2>
-              <Badge>{snap.playing ? "Integrating" : "Held"}</Badge>
-            </div>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">{snap.phase.line}</p>
-          </div>
-          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {stat("diag-sigma", "σ", diag.growthPerYear != null ? `${signed(diag.growthPerYear, 2)} /yr` : "—")}
-            {stat("diag-omega", "ω", diag.omega ? diag.omega.toFixed(3) : "—")}
-            {stat("diag-period", "Period", diag.periodYears ? `${diag.periodYears.toFixed(1)} yr` : "—")}
-            {stat("diag-lead", "h_W lead", diag.leadMonths ? `${diag.leadMonths.toFixed(0)} mo` : "—")}
-          </dl>
+        <div>
+          <Button
+            id="coefficients"
+            type="button"
+            variant={tools ? "default" : "outline"}
+            aria-expanded={tools}
+            onClick={() => setTools((open) => !open)}
+          >
+            Coefficients
+          </Button>
+        </div>
+
+        {tools && (
+        <>
+        <section className="grid gap-2 sm:grid-cols-4">
+          {stat("diag-sigma", "σ", diag.growthPerYear != null ? `${signed(diag.growthPerYear, 2)} /yr` : "—")}
+          {stat("diag-omega", "ω", diag.omega ? diag.omega.toFixed(3) : "—")}
+          {stat("diag-period", "Period", diag.periodYears ? `${diag.periodYears.toFixed(1)} yr` : "—")}
+          {stat("diag-lead", "h_W lead", diag.leadMonths ? `${diag.leadMonths.toFixed(0)} mo` : "—")}
         </section>
+
+        <Card>
+          <CardHeader><CardTitle>Section</CardTitle></CardHeader>
+          <CardContent>
+            <SectionFigure tCelsius={shown.tCelsius} hWest={shown.hMeters} hEast={snap.hE} />
+            <p className="mt-2 text-xs text-muted-foreground">West is warm-water volume. East is T_E.</p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader><CardTitle>Initial states</CardTitle></CardHeader>
@@ -211,6 +224,13 @@ export default function App() {
               ? ` Run B: σ = ${signed(snap.runB.diag.growthPerYear, 2)} /yr, period ${snap.runB.diag.periodYears ? `${snap.runB.diag.periodYears.toFixed(1)} yr` : "—"}.`
               : ""}
           </p>
+          <div className="px-6 pb-4">
+            <SeriesFigure
+              runA={snap.runA.series}
+              runB={snap.runB ? snap.runB.series : null}
+              windowYears={snap.series.window}
+            />
+          </div>
         </Card>
 
         {snap.diverged && (
@@ -272,6 +292,8 @@ export default function App() {
             />
           </CardContent>
         </Card>
+        </>
+        )}
 
         <footer className="space-y-2 pb-4 text-sm leading-relaxed text-muted-foreground">
           <p>

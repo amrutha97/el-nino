@@ -11,7 +11,7 @@ import {
   cloneParams,
   diagnose,
   mulberry32,
-  phaseOf,
+  beatOf,
   step,
   tendencies,
   toDisplay,
@@ -83,7 +83,7 @@ export function createSimulation() {
     years: 0,
     playing: false,
     presetId: "neutral",
-    monthsPerSecond: 5,
+    monthsPerSecond: 2,
     phaseRange: { x: [-45, 45], y: [-2.6, 2.6] },
     rangeKey: "",
   };
@@ -177,7 +177,7 @@ export function createSimulation() {
       shown,
       hE,
       diag,
-      phase: phaseOf(shown.tCelsius, shown.hMeters),
+      phase: beatOf(shown.tCelsius, shown.hMeters),
       trail: trailOf(run, diag),
       series: {
         years: run.history.years.slice(),
@@ -414,7 +414,8 @@ export function createSimulation() {
     restartAtInitial();
   }
 
-  applyInitial(PRESETS.neutral);
+  // Fig. 3 neutral orbit, begun where the west is recharged and the east has not warmed.
+  applyInitial({ ...PRESETS.neutral, id: "", tCelsius: -0.4, hMeters: 14 });
   return {
     state,
     snapshot,

@@ -15,7 +15,7 @@ dh_W/dt = −r h_W − α b T_E − α ξ₁
 
 \(b = b_0 \mu\). With \(\zeta = \kappa = \nu = 0\) this is (2.6), (3.1), and (3.4): thermocline feedback, cubic saturation on \(h_E^3\), and white wind and heating noise. \(\zeta\) is the zonal advective feedback of Jin and An (1999) and the warm-pool branch of Kug, Jin, and An (2009). \(\kappa\) is the Ekman feedback in the Bjerknes index of Jin, Kim, and Bejarano (2006). \(\nu T_E^2\) is a schematic of the nonlinear dynamical heating diagnosed by An and Jin (2004). The linear operator gives the growth rate \(\sigma = (R - r)/2\), the frequency \(\omega\), the period, and the lead of \(h_W\) ahead of \(T_E\).
 
-The page shows one state at a time: the equatorial SST and warm pool on a Blue Marble globe, an equatorial section of warm-water volume, or the clockwise \((h_W, T_E)\) orbit with the time series. A second run can be copied from the first and overlaid. Coefficients and the integrated series export as CSV; the parameter set exports as JSON. A sweep of \(\mu\) or \(b\) plots period and \(\sigma\), with \(\sigma = 0\) the stability boundary.
+The page opens on the neutral cycle of Jin (1997), begun with the western Pacific recharged. Earth and the \((h_W, T_E)\) orbit play together: recharge, eastern warming, El Niño, discharge, La Niña, recharge. Coefficients, a second run, the sweep of \(\mu\) or \(b\), and export sit one step aside.
 
 The equations are in `js/model.js`.
 
